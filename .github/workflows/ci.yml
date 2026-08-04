@@ -1,0 +1,34 @@
+name: Swift reference checks
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - "feature/**"
+      - "release/**"
+  pull_request:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Build, test and validate public content
+    runs-on: macos-15
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Run Swift Testing suite
+        run: swift test
+      - name: Build release configuration
+        run: swift build -c release
+      - name: Validate public boundaries and assets
+        run: ./scripts/validate-public-content.sh
+
