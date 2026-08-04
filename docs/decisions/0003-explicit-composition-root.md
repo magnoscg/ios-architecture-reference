@@ -1,19 +1,35 @@
 # ADR-0003: Compose concrete dependencies at one edge
 
-- Status: accepted
-- Date: 2026-08-04
+- **Status:** Superseded for v2 by [ADR-0005](0005-hierarchical-composition-roots.md)
+- **Date:** 2026-08-04
+- **Applies to:** tag [`1.0.0`](https://github.com/magnoscg/ios-architecture-reference/tree/1.0.0) only
 
 ## Context
 
-Constructing concrete clients inside features hides configuration, couples tests to implementation details and encourages global mutable state.
+Constructing concrete clients inside feature logic hides configuration, couples tests to implementation details, and encourages mutable global state.
 
 ## Decision
 
-Create object graphs in `ArchitectureComposition`. Expose deterministic demo and HTTPS live graphs, both satisfying the same domain contracts.
+The v1 package creates its demo and live object graphs in one `ArchitectureComposition` target.
 
-## Consequences
+## Consequences in v1
 
-- Feature code is independent from environment configuration.
+- Feature code remains independent from environment configuration.
 - Previews and tests can use deterministic dependencies.
-- A larger application may eventually split composition by scene or feature, but concrete construction remains at an outer boundary.
+- One small composition edge is sufficient for the package's single slice.
 
+## Why v2 supersedes it
+
+The real application has app-, scene-, and screen-lifetime objects. Version 2 therefore composes shared services at `ArquitecturaApp`/`AppDependencies` and individual graphs in feature factories. Concrete construction remains explicit, but it is intentionally hierarchical rather than centralized in one file.
+
+---
+
+**Document Metadata**
+
+| Field | Value |
+| --- | --- |
+| Author / Owner | magnoscg / OgamLabs |
+| Last Updated / Verified | 2026-08-04 |
+| Status | Historical, superseded for v2 |
+| Review Schedule | Immutable historical record |
+| Labels | `adr`, `v1`, `composition-root`, `dependency-injection` |
