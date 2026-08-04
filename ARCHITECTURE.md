@@ -1,135 +1,190 @@
 # Architecture
 
-## Goal
+**[Español](ARCHITECTURE.es.md)** · **[README](README.md)** · **[Project structure](docs/PROJECT-STRUCTURE.md)** · **[Known limitations](docs/KNOWN-LIMITATIONS.md)**
 
-Show one complete Swift 6 feature with enough boundaries to make architectural decisions reviewable, while keeping the repository small enough to understand in a single sitting.
+## Purpose and exact classification
 
-The package is not a universal starter template. It is evidence for a way of reasoning: dependencies point inward, asynchronous work crosses typed contracts, UI state has one owner and concrete objects are composed at an explicit edge.
+This repository is a real SwiftUI reference application. Its architecture is best described as:
 
-## Module graph
+> A single-application-target, layered and feature-oriented architecture inspired by Clean Architecture, using MVVM, typed feature routers, and manual hierarchical factory-based dependency injection.
 
-| Module | Owns | May depend on | Must not know |
-| --- | --- | --- | --- |
-| `ArchitectureDomain` | Entities, repository protocol, use-case rule | Swift standard library, Foundation value types | SwiftUI, URLSession, concrete storage |
-| `ArchitectureData` | DTOs, validation, HTTPS request, concrete repositories | Domain, Foundation | Views, navigation, presentation copy |
-| `ArchitectureFeature` | SwiftUI, ViewModel, state, Router | Domain, SwiftUI, Observation | Concrete networking or environment configuration |
-| `ArchitectureComposition` | Demo/live object graphs | Domain, Data, Feature | Business rules or reusable UI |
+The wording is deliberate. `Domain`, `Data`, `Features`, `Core`, and `App` are source folders in one application target, not independently compiled modules. The organization improves discoverability and reviewability, but Xcode does not enforce the dependency direction.
 
-Swift Package Manager enforces these arrows. A source file cannot import an outer module that is absent from its target dependencies.
+The target is an educational reference, not a claim that every iOS product needs this amount of structure. It shows concrete trade-offs and leaves known deviations visible.
 
-## Request and state flow
+## Architecture profile
 
-```mermaid
-sequenceDiagram
-    participant View as SwiftUI View
-    participant VM as @MainActor ViewModel
-    participant UseCase as Domain Use Case
-    participant Repo as Repository Protocol
-    participant Remote as Remote Repository Actor
-    participant HTTP as HTTP Client
+| Concern | Actual implementation |
+| --- | --- |
+| UI | SwiftUI, iOS 18+ |
+| Presentation | `@Observable` ViewModels with explicit state enums |
+| Domain operations | Protocol-backed Use Cases and value models |
+| Data access | Static data, bundled JSON, and remote PokeAPI Data Sources |
+| Navigation | `NavigationStack`, one `NavigationPath`, Codable feature route enums |
+| Dependency injection | Constructor injection assembled by app and feature factories |
+| Concurrency | Swift 6 language mode, default MainActor isolation, async/await, task groups |
+| Networking | URLSession through a shared `APIClient`, endpoint values, and interceptors |
+| Persistence | No domain database; route data only uses `@SceneStorage` |
+| Dependencies | Apple frameworks only; no third-party Swift packages |
 
-    View->>VM: load()
-    VM->>VM: state = loading
-    VM->>UseCase: callAsFunction()
-    UseCase->>Repo: fetchArticles()
-    Repo->>Remote: dynamic dispatch
-    Remote->>HTTP: HTTPS URLRequest
-    HTTP-->>Remote: Data + HTTPURLResponse
-    Remote-->>UseCase: [ArchitectureArticle]
-    UseCase-->>VM: unique domain values
-    VM->>VM: state = content / empty / failure
-    VM-->>View: synchronous observable state
+The two presentation diagrams and their text fallbacks live in the README:
+
+- [Composition and lifetimes](README.md#composition-and-lifetimes)
+- [Runtime flow](README.md#runtime-flow)
+
+## Hierarchical composition root
+
+Composition is split by lifetime instead of forced into one oversized container.
+
+| Owner | Constructs | Lifetime |
+| --- | --- | --- |
+| [`ArquitecturaApp`](Arquitectura/ArquitecturaApp.swift) | `AppDependencies`, `AppRouterImpl`, splash and root view | Application |
+| [`AppDependencies`](Arquitectura/App/Config/AppDependencies.swift) | Environment configuration and `APIClientImpl` | Application |
+| [`RootNavigationView`](Arquitectura/App/Navigation/RootNavigationView.swift) | `AppNavigationCoordinator` and route resolvers | Scene/root view |
+| Feature factories | Data Source, mapper, Repository, Use Case, Router, ViewModel, View | Screen/navigation destination |
+
+[`PokemonListFactory`](Arquitectura/Features/PokemonList/DI/PokemonListFactory.swift) is the clearest complete example. It receives the shared API client and app router, creates the feature-specific collaborators, and injects the resulting ViewModel into the View. No service locator or DI framework is involved.
+
+The architecture catalogue does not need networking, so [`ArchitectureFactory`](Arquitectura/Features/Architecture/DI/ArchitectureFactory.swift) builds a graph backed by static data. The splash factory creates only its ViewModel and View. Factories remain proportional to the feature they assemble.
+
+See [ADR-0005](docs/decisions/0005-hierarchical-composition-roots.md) for the decision and alternatives.
+
+## Logical layers and dependency direction
+
+The intended collaboration direction is:
+
+```text
+App / Feature UI
+        ↓
+Presentation (ViewModel + presentation mapper + feature Router)
+        ↓
+Domain (Use Case + domain model)
+        ↓
+Data contract and implementation (Repository + mapper + Data Source)
+        ↓
+Core infrastructure (APIClient / URLSession) or bundled data
 ```
 
-Each layer translates errors into its own vocabulary:
+Responsibilities in the current tree:
 
-- transport and decoding become `ArchitectureDataError`;
-- duplicate domain identifiers become `ArchitectureDomainError`;
-- implementation details become stable user-facing copy at the ViewModel boundary.
+- **App** owns startup, shared configuration, navigation state, deep-link coordination, and application-lifetime dependencies.
+- **Features** owns SwiftUI Views, explicit UI state, ViewModels, presentation decorators/mappers, typed feature routes, and factories.
+- **Domain** owns feature models and Use Case protocols/implementations.
+- **Data** owns repository protocols and implementations, DTOs, DTO mappers, and Data Sources.
+- **Core** owns networking, security helpers, shared SwiftUI components, error presentation, and design tokens.
 
-No raw server message reaches the UI.
+This is Clean Architecture-inspired rather than strict Clean Architecture. Repository protocols are currently physically located in `Data`; `DomainError.map` knows the networking `APIError`; and `ErrorDecorator` sits in `Core` despite being presentation-facing. These are documented debts, not hidden claims. See [Known limitations](docs/KNOWN-LIMITATIONS.md).
 
-## Concurrency model
+## Complete runtime paths
 
-- `ArchitectureArticle` and related values are immutable and `Sendable`.
-- Repository protocols are `Sendable`, so implementations can safely cross isolation boundaries.
-- `RemoteArchitectureArticleRepository` and `URLSessionHTTPClient` are actors because they own non-UI service state.
-- `ArchitectureArticleListViewModel` and the Router are `@MainActor`, matching synchronous SwiftUI observation.
-- The package does not introduce `Task.detached`, `@unchecked Sendable`, `nonisolated(unsafe)` or GCD queue hopping.
-- The UI initiates lifecycle work with `.task`; retry ownership stays in the ViewModel through a synchronous entry point.
+### Local architecture catalogue
 
-The objective is not maximum concurrency. It is a small number of clear isolation domains with immutable values between them.
-
-## State model
-
-`ArchitectureArticleListState` makes valid screen phases explicit:
-
-```swift
-enum ArchitectureArticleListState {
-    case idle
-    case loading
-    case content([ArchitectureArticle])
-    case empty
-    case failure(message: String)
-}
+```text
+ArchitectureView
+→ ArchitectureViewModel
+→ ArchitectureUseCaseImpl
+→ ArchitectureRepositoryImpl
+→ ArchitectureStaticDataSourceImpl
 ```
 
-This prevents a view from inferring state from combinations such as `items.isEmpty`, `isLoading` and `error != nil`. Search text remains presentation state, while filtering is a ViewModel concern rather than a domain rule.
+Selecting an entry pushes an `ArchitectureRoute.detail`. The destination factory builds a second graph that reads `architecture_details.json` once during Data Source initialization and caches the decoded DTOs for that screen graph.
 
-## Navigation model
+The catalogue is documentation embedded in the app. Its 19 current entries are backed by implementation in this repository; unsupported SwiftData and background-executor claims were removed from the published snapshot.
 
-`ArchitectureRouter` owns a typed `[ArchitectureRoute]` path. Feature rows ask a protocol to navigate; they do not mutate `NavigationPath`, parse strings or construct destinations. The root view binds the Router to `NavigationStack` and resolves destinations in one place.
+### PokeAPI list and detail
 
-For a larger app, the same seam can add URL-to-route parsing, state restoration or a parent coordinator without changing the domain and data layers.
+```text
+PokemonListView
+→ PokemonListViewModel
+→ PokemonListUseCaseImpl
+→ PokemonListRepositoryImpl
+→ PokemonListRemoteDataSourceImpl
+→ APIClientImpl
+→ PokeAPIEndpoint
+```
 
-## Composition
+The list Repository uses a throwing task group to fetch item details concurrently and sorts successful results by ID. Individual non-cancellation detail failures are logged and omitted; cancellation propagates. The detail Repository loads detail and species concurrently, treating species metadata as optional while keeping the primary detail required.
 
-`ArchitectureReference` is the composition root:
+No PokeAPI response is persisted locally. See [Third-party notices](THIRD_PARTY_NOTICES.md) for attribution and scope.
 
-- `demo()` injects fixed first-party content for deterministic previews and evaluation;
-- `live(baseURL:)` injects the actor-isolated HTTPS implementation.
+## State, errors, and cancellation
 
-No singleton or service locator is needed. A production app can read environment configuration in its app target and pass a base URL into the live graph.
+Each screen ViewModel owns an explicit state enum such as `idle`, `loading`, `loaded`, and `error`. SwiftUI Views render that state and send user intents back to the ViewModel; they do not construct repositories or mutate the app path directly.
 
-## Test shape
+ViewModels guard duplicate loads. On `CancellationError`, they restore the previous state instead of leaving a loading screen stuck. List pagination tracks its loading and retryable error separately from the already loaded content.
 
-| Boundary | What the tests prove |
+The implemented error path is:
+
+```text
+APIError
+→ DomainError.map(...) inside a Use Case
+→ ErrorDecorator.from(...) inside a ViewModel
+→ localized SwiftUI error state
+```
+
+This prevents raw server payloads from becoming user-facing copy. It also creates a known outward dependency from Domain error mapping to networking, which is recorded for later structural review.
+
+## Typed navigation and restoration
+
+[`AppRouterImpl`](Arquitectura/App/Navigation/AppRouterImpl.swift) owns one observable `NavigationPath`. Each flow defines Codable, Hashable route values and a small feature Router protocol. ViewModels express intent through those protocols; implementations delegate to the app router.
+
+[`RootNavigationView`](Arquitectura/App/Navigation/RootNavigationView.swift) installs feature-specific `navigationDestination` resolvers. [`AppNavigationCoordinator`](Arquitectura/App/Navigation/AppNavigationCoordinator.swift) parses the `arquitectura://` deep-link scheme and encodes the path into `@SceneStorage` after a debounce.
+
+This keeps route construction out of Views while allowing heterogeneous destinations in one stack. It does not yet prove robust multiwindow ownership or every cold-launch deep-link ordering scenario. See [ADR-0006](docs/decisions/0006-typed-feature-routing.md).
+
+## Swift concurrency model
+
+The project uses Swift 6 language mode and `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` for the app and test targets.
+
+- SwiftUI Views, ViewModels, routers, coordinators, and factories are MainActor-isolated, explicitly or by target default.
+- Async repository and Data Source contracts conform to `Sendable` where they cross task boundaries.
+- `APIClientImpl` uses `@unchecked Sendable`; its documented safety argument depends on immutable stored collaborators and a fresh decoder per request.
+- The Pokémon list uses `withThrowingTaskGroup`; the detail flow uses `async let`.
+- Cancellation is handled separately from domain failure in Use Cases, repositories, and ViewModels.
+
+Default MainActor isolation means folder names do not imply background execution. The bundled JSON Data Source performs synchronous file read/decoding during feature construction. Moving CPU- or disk-heavy work behind an explicitly nonisolated service is follow-up work if this sample grows.
+
+## Environments and network security
+
+The project contains Development, Staging, and Production xcconfig files with matching shared schemes.
+
+- **Development** is the only public flow built and tested as part of this reference. SSL pinning is disabled and internal API values are placeholders; the PokeAPI example uses its own HTTPS base URL.
+- **Staging** is an illustrative template with placeholder endpoint configuration and pinning disabled.
+- **Production** is an illustrative template. A build guard rejects release builds while the certificate hash remains the checked-in placeholder.
+
+The presence of `SSLPinningDelegate`, interceptors, Keychain helpers, or a privacy manifest is implementation evidence, not a statement that the sample is production-ready. Product-specific authentication, secrets, certificates, observability, incident response, and privacy review remain outside this public repository.
+
+## Testing strategy
+
+The checked-in `ArquitecturaTests.xctestplan` executes `ArquitecturaTests` only. The 2026-08-04 source snapshot ran 194 Swift Testing cases in 27 suites covering:
+
+- endpoint and interceptor behavior;
+- DTO-to-domain and domain-to-presentation mapping;
+- Repository and Data Source outcomes;
+- Use Case sorting, pagination, error mapping, and cancellation;
+- ViewModel state transitions and Router delegation;
+- navigation encoding, restoration, and deep-link parsing;
+- splash state behavior.
+
+The Xcode project contains a nominal `ArquitecturaUITests` target, but there are no UI test sources and the target is absent from the test plan. The documentation therefore makes no UI-test claim.
+
+Run the same public checks with `make ci`. The pipeline uses a dynamically selected iPhone simulator, disables code signing, lints without rewriting source, validates the public boundary, and fails if verification changes tracked files.
+
+## Decision index
+
+- Historical v1: [ADR-0001](docs/decisions/0001-protect-dependency-direction.md), [ADR-0002](docs/decisions/0002-mainactor-observable-state.md), [ADR-0003](docs/decisions/0003-explicit-composition-root.md)
+- Current v2: [ADR-0004](docs/decisions/0004-single-app-target-logical-boundaries.md), [ADR-0005](docs/decisions/0005-hierarchical-composition-roots.md), [ADR-0006](docs/decisions/0006-typed-feature-routing.md)
+
+---
+
+**Document Metadata**
+
+| Field | Value |
 | --- | --- |
-| Domain | Repository results pass through and duplicate identifiers fail deterministically |
-| Data mapping | Whitespace normalization, enum validation and reading-time constraints |
-| Endpoint | HTTPS-only transport, path, method, timeout and Accept header |
-| Remote repository | Success decoding, status handling and stable decoding errors |
-| Presentation | Content, empty, failure copy, localized search and Router delegation |
-
-Tests use Swift Testing in the package host, run in parallel by default and do not launch an app or simulator. Test doubles are injected through the same protocols used by the production graph.
-
-## Scaling guidance
-
-Add a module when it protects a real ownership or build boundary, not when a folder becomes visually busy.
-
-- Multiple independent features can each own a Feature target while sharing focused Domain capabilities.
-- Persistence can implement the domain repository beside or instead of the remote repository.
-- A caching decorator can wrap repositories without changing the use case.
-- A parent composition root can assemble account, feature flag or environment dependencies.
-- Cross-feature navigation belongs above individual feature Routers.
-
-Keep the current shape when the product is small. Splitting every model, use case or screen into its own package would trade one kind of coupling for build and maintenance overhead.
-
-## Rejected alternatives
-
-| Alternative | Why it is not used here |
-| --- | --- |
-| One app target with folders only | Easier initially, but it cannot prove dependency direction at compile time |
-| Global service locator | Hides object lifetime and makes tests depend on mutable global state |
-| Third-party DI container | No object graph here is complex enough to justify another runtime or supply-chain dependency |
-| Actor ViewModel | SwiftUI needs synchronous observable state on MainActor |
-| `ObservableObject` + Combine | Observation is sufficient for an iOS 18+ reference and removes publisher boilerplate |
-| TCA | Strong option for different constraints, but unnecessary for one small vertical slice |
-| Generic base repositories/ViewModels | Abstracts names while hiding the product-specific contract the reviewer needs to see |
-
-## Decision records
-
-- [ADR-0001: protect dependency direction](docs/decisions/0001-protect-dependency-direction.md)
-- [ADR-0002: isolate observable state on MainActor](docs/decisions/0002-mainactor-observable-state.md)
-- [ADR-0003: compose concrete dependencies at one edge](docs/decisions/0003-explicit-composition-root.md)
-
+| Author / Owner | magnoscg / OgamLabs |
+| Created | 2026-08-04 |
+| Last Updated | 2026-08-04 |
+| Last Verified | 2026-08-04 |
+| Status | Verified for the v2 source snapshot |
+| Review Schedule | Quarterly and on architectural change |
+| Labels | `ios`, `swiftui`, `architecture`, `mvvm`, `routing`, `dependency-injection` |

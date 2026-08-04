@@ -2,6 +2,11 @@
 .build/
 .swiftpm/
 DerivedData/
+__pycache__/
+*.py[cod]
+*.xcresult/
+*.xcresult
+*.ipa
+*.dSYM.zip
 xcuserdata/
 *.xcuserstate
-

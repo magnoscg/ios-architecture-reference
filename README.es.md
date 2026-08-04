@@ -1,118 +1,184 @@
 # Referencia de arquitectura iOS
 
-![Referencia de arquitectura iOS — Swift 6, Clean Architecture, MVVM y Router](docs/images/social-preview.png)
+![Referencia de arquitectura iOS — una aplicación SwiftUI real](docs/images/social-preview.png)
 
-[![Swift 6](https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white)](Package.swift)
-[![Plataformas](https://img.shields.io/badge/iOS%2018%2B%20%7C%20macOS%2015%2B-000000?style=flat-square&logo=apple&logoColor=white)](Package.swift)
+[![Swift 6](https://img.shields.io/badge/Swift_language_mode-6.0-F05138?style=flat-square&logo=swift&logoColor=white)](Arquitectura.xcodeproj/project.pbxproj)
+[![iOS 18+](https://img.shields.io/badge/iOS-18%2B-000000?style=flat-square&logo=apple&logoColor=white)](Arquitectura.xcodeproj/project.pbxproj)
 [![CI](https://img.shields.io/github/actions/workflow/status/magnoscg/ios-architecture-reference/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/magnoscg/ios-architecture-reference/actions/workflows/ci.yml)
-[![Licencia: MIT](https://img.shields.io/badge/Licencia-MIT-0A84FF?style=flat-square)](LICENSE.md)
+[![Licencia: MIT](https://img.shields.io/badge/Código-MIT-0066CC?style=flat-square)](LICENSE.md)
 
-**[English](README.md)** · **[Arquitectura](ARCHITECTURE.md)** · **[Decisiones](docs/decisions)** · **[Seguridad](SECURITY.md)**
+**[English](README.md)** · **[Arquitectura](ARCHITECTURE.es.md)** · **[Estructura](docs/PROJECT-STRUCTURE.es.md)** · **[Limitaciones](docs/KNOWN-LIMITATIONS.es.md)**
 
-Una referencia pequeña y compilable en Swift 6 para **Clean Architecture + MVVM + navegación Router tipada**. Es deliberadamente más acotada que una app de producción: una vertical completa, cuatro módulos, reglas de dependencia explícitas y tests rápidos sin lanzar un simulador.
+Una aplicación SwiftUI compilable que muestra la arquitectura que Oscar Canton utiliza como referencia en sus proyectos iOS: **organizada por capas y features, inspirada en Clean Architecture, con MVVM, navegación tipada e inyección manual mediante factories**.
 
-Es una implementación original de Oscar Canton. No contiene código de producto de CholloGas o Hilo, credenciales, endpoints de producción ni detalles privados de infraestructura.
+Es la aplicación de referencia real, no una muestra construida solo para sostener un diagrama. Se publica deliberadamente sin código privado de producto, historial del repositorio privado, credenciales ni infraestructura operativa.
 
-## Resumen para recruiters
+## Evidencia de la aplicación real
 
-| Señal | Evidencia |
-| --- | --- |
-| Arquitectura | Cuatro targets Swift Package con dirección de dependencias comprobada al compilar |
-| iOS moderno | Swift 6, SwiftUI, Observation, async/await y límites `Sendable` |
-| Presentación | Estados loading/content/empty/failure explícitos y ViewModel `@MainActor` |
-| Navegación | Rutas tipadas controladas por un Router observable fuera de las vistas de feature |
-| Entrega | Un composition root para grafos demo y live |
-| Calidad | 15 pruebas Swift Testing sobre dominio, datos y presentación |
-| Supply chain | Cero paquetes de terceros y permisos de CI de solo lectura |
+Estas capturas proceden de la app `Arquitectura-Dev` incluida, ejecutada en un simulador iPhone 17 Pro con iOS 26.5. Cada imagen responde automáticamente al tema claro/oscuro de GitHub; las dos variantes se pueden revisar directamente en [`docs/images`](docs/images).
 
-## Qué demuestra el repositorio
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/architecture-list-dark.png">
+    <img src="docs/images/architecture-list-light.png" alt="Catálogo de arquitectura con entradas implementadas en la aplicación SwiftUI real" width="300">
+  </picture>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/architecture-detail-dark.png">
+    <img src="docs/images/architecture-detail-light.png" alt="Detalle de capas inspiradas en Clean Architecture con archivos reales y notas de implementación" width="300">
+  </picture>
+</p>
+
+La galería usa locale `en_US` y no contiene arte de Pokémon. Las condiciones de captura y hashes inmutables están en [Procedencia de assets](ASSET_PROVENANCE.md).
+
+## Qué puede verificar quien la revise
+
+- **Composición trazable:** [`ArquitecturaApp`](Arquitectura/ArquitecturaApp.swift) crea las dependencias de vida de aplicación; cada factory construye el grafo de vida de pantalla.
+- **Flujos completos:** vista SwiftUI → ViewModel `@Observable` → caso de uso → repositorio → fuente de datos → `APIClient`.
+- **Navegación tipada:** enums de ruta por feature delegan en un único [`AppRouter`](Arquitectura/App/Navigation/AppRouter.swift) observable.
+- **Problemas reales de entrega:** entornos xcconfig, networking con URLSession, interceptores, infraestructura de SSL pinning, manifiesto de privacidad, deep links y restauración de rutas.
+- **Evidencia de tests:** el snapshot verificado el 04-08-2026 ejecuta 194 casos Swift Testing en 27 suites. CI calcula el recuento vigente en vez de confiar en esta frase.
+- **Límites honestos:** las carpetas expresan la arquitectura dentro de un target de aplicación; no imponen límites de módulo al compilar.
+
+## Composición y ciclos de vida
 
 ```mermaid
-flowchart LR
-    App["Composition root"] --> Feature["Feature · SwiftUI + MVVM"]
-    App --> Data["Data · implementación del repositorio"]
-    Feature --> Domain["Domain · modelos + caso de uso + protocolo"]
-    Data --> Domain
+flowchart TB
+    App["ArquitecturaApp<br/>raíz de composición de app"] --> Lifetime["AppDependencies · APIClient · AppRouterImpl<br/>vida de aplicación"]
+    Lifetime --> Root["RootNavigationView<br/>vida de escena"]
+    Root --> Resolver["Resolvers de rutas tipadas"]
+    Resolver --> Factory["FeatureFactory<br/>subraíz de vida de pantalla"]
+    Factory --> Graph["View + ViewModel + UseCase<br/>Repository + DataSource"]
 
-    classDef domain fill:#0A84FF,color:#fff,stroke:#0A84FF;
-    classDef outer fill:#FAF9F6,color:#050505,stroke:#A8A8AD;
-    class Domain domain;
-    class App,Feature,Data outer;
+    classDef primary fill:#0066CC,color:#FFFFFF,stroke:#005EB8,stroke-width:2px;
+    classDef secondary fill:#E6F2FF,color:#005EB8,stroke:#005EB8,stroke-width:2px;
+    classDef neutral fill:#FAF9F6,color:#050505,stroke:#6E6E73,stroke-width:2px;
+    class App primary;
+    class Lifetime,Factory secondary;
+    class Root,Resolver,Graph neutral;
+    linkStyle default stroke:#6E6E73,stroke-width:2px;
 ```
 
-Las flechas representan dependencias, no llamadas en runtime. `ArchitectureDomain` no importa SwiftUI ni networking. `ArchitectureData` implementa el protocolo definido por dominio. `ArchitectureFeature` consume el caso de uso y solo posee estado de presentación. `ArchitectureComposition` es el único punto que conoce todos los tipos concretos.
-
-El flujo de ejecución también es explícito:
+Alternativa textual:
 
 ```text
-Tarea SwiftUI
-  → ViewModel @MainActor
-    → caso de uso de dominio
-      → protocolo de repositorio
-        → repositorio remoto aislado en actor
-          → cliente HTTPS
-        ← valores de dominio Sendable
-    ← estado content / empty / failure
-  → destino Router tipado
+ArquitecturaApp
+├── AppDependencies ── APIClient                 [vida de aplicación]
+├── AppRouterImpl                                [vida de aplicación]
+└── RootNavigationView                           [vida de escena]
+    └── resolvers de rutas tipadas
+        └── FeatureFactory                       [vida de pantalla]
+            └── View · ViewModel · UseCase · Repository · DataSource
 ```
 
-## Revísalo en cinco minutos
+La aplicación tiene una **raíz de composición jerárquica**, no un único archivo global que construye todos los tipos concretos. La raíz de app posee servicios compartidos y navegación; las factories son raíces menores para cada pantalla.
 
-1. Empieza por [`Package.swift`](Package.swift) para ver el grafo de módulos.
-2. Lee [`LoadArchitectureArticles`](Sources/ArchitectureDomain/LoadArchitectureArticles.swift) para ver una regla de dominio sin frameworks.
-3. Compara el protocolo con [`RemoteArchitectureArticleRepository`](Sources/ArchitectureData/RemoteArchitectureArticleRepository.swift).
-4. Revisa [`ArchitectureArticleListViewModel`](Sources/ArchitectureFeature/ArchitectureArticleListViewModel.swift) para ver estado MainActor y traducción de errores.
-5. Termina en [`ArchitectureReference`](Sources/ArchitectureComposition/ArchitectureReference.swift), donde las dependencias concretas se componen una sola vez.
+## Flujo en ejecución
+
+```mermaid
+flowchart TB
+    View["Vista SwiftUI"] -->|acción de usuario| VM["ViewModel @Observable"]
+    VM -->|ejecuta| UseCase["Caso de uso"]
+    UseCase -->|petición de dominio| Repository["Repositorio"]
+    Repository -->|carga| DataSource["Fuente de datos"]
+    DataSource -->|request| Client["APIClient / URLSession"]
+    VM -->|intención de navegación| FeatureRouter["Router de feature"]
+    FeatureRouter -->|ruta tipada| AppRouter["AppRouter / NavigationPath"]
+
+    classDef primary fill:#0066CC,color:#FFFFFF,stroke:#005EB8,stroke-width:2px;
+    classDef secondary fill:#E6F2FF,color:#005EB8,stroke:#005EB8,stroke-width:2px;
+    classDef neutral fill:#FAF9F6,color:#050505,stroke:#6E6E73,stroke-width:2px;
+    class View,VM primary;
+    class UseCase,FeatureRouter secondary;
+    class Repository,DataSource,Client,AppRouter neutral;
+    linkStyle default stroke:#6E6E73,stroke-width:2px;
+```
+
+Alternativa textual:
+
+```text
+View → ViewModel → UseCase → Repository → DataSource → APIClient
+          └──────→ FeatureRouter → AppRouter → NavigationPath
+```
+
+Estas flechas representan colaboración en runtime. Como todo el código de app se compila en un único target, los límites entre capas son convenciones protegidas por revisión y tests, no módulos Swift separados.
+
+## Revísala en cinco minutos
+
+1. Empieza en [`ArquitecturaApp`](Arquitectura/ArquitecturaApp.swift) y [`AppDependencies`](Arquitectura/App/Config/AppDependencies.swift) para ver la construcción de vida de aplicación.
+2. Sigue [`RootNavigationView`](Arquitectura/App/Navigation/RootNavigationView.swift) hasta los resolvers de rutas tipadas.
+3. Abre [`PokemonListFactory`](Arquitectura/Features/PokemonList/DI/PokemonListFactory.swift) para inspeccionar un grafo completo de feature.
+4. Recorre [`PokemonListViewModel`](Arquitectura/Features/PokemonList/Presentation/ViewModels/PokemonListViewModel.swift) → [`PokemonListUseCaseImpl`](Arquitectura/Domain/PokemonList/UseCases/PokemonListUseCaseImpl.swift) → [`PokemonListRepositoryImpl`](Arquitectura/Data/PokemonList/Repositories/PokemonListRepositoryImpl.swift).
+5. Compara esos contratos con sus tests en [`ArquitecturaTests`](ArquitecturaTests).
+
+La aplicación también contiene un catálogo local de arquitectura con 19 entradas implementadas. Cada detalle enlaza con rutas reales de este repositorio; los conceptos inexistentes se han eliminado en vez de presentarlos como trabajo terminado.
 
 ## Compilar y validar
 
-Requisitos: Xcode 16 o posterior con toolchain Swift 6.
+Requisitos:
+
+- macOS con el formato de proyecto de Xcode 26.2. El snapshot se verificó localmente con Xcode 26.6 y compilador Swift 6.3.3; CI usa el Xcode predeterminado de la imagen `macos-26` de GitHub.
+- Un simulador iOS 18 o posterior.
+- SwiftFormat y SwiftLint disponibles en `PATH` para validar estilo.
 
 ```bash
-swift test
-swift build -c release
-./scripts/validate-public-content.sh
+git clone https://github.com/magnoscg/ios-architecture-reference.git
+cd ios-architecture-reference
+make ci
+open Arquitectura.xcodeproj
 ```
 
-El package tiene target iOS 18+ y usa macOS 15+ como host rápido de tests. Las pruebas unitarias usan Swift Testing y no necesitan simulador iOS.
+Selecciona el scheme compartido `Arquitectura-Dev` y un simulador iPhone disponible. Development es el único entorno validado como ejecutable en esta referencia pública.
 
-## Usar la referencia desde un app shell mínimo
+Comandos útiles:
 
-Añade el package localmente y deja que el target de la app sea responsable únicamente del arranque de plataforma y la configuración de producción:
-
-```swift
-import ArchitectureComposition
-import SwiftUI
-
-@main
-struct ReferenceDemoApp: App {
-    var body: some Scene {
-        WindowGroup {
-            ArchitectureReference.demo()
-        }
-    }
-}
+```bash
+make build      # Compila Arquitectura-Dev sin firma
+make test       # Ejecuta el test plan Swift Testing en simulador
+make lint       # Comprueba SwiftFormat y SwiftLint sin reescribir archivos
+make validate   # Valida límite público, enlaces y procedencia
+make format     # Reescribe formato Swift de manera explícita
 ```
 
-`ArchitectureReference.live(baseURL:)` muestra el mismo grafo con repositorio HTTPS. El grafo demo es determinista para que previews y builds exploratorias no dependan de un backend.
+## Qué es este repositorio — y qué no es
 
-## Trade-offs deliberados
+El proyecto demuestra la arquitectura con dos dominios pequeños: un catálogo local que se documenta a sí mismo y un flujo real de listado/detalle sobre PokeAPI. No tiene paquetes Swift de terceros.
 
-- Es una referencia, no un framework que un equipo deba adoptar sin debatirlo.
-- Cuatro módulos hacen visible la regla de dependencias; una app menor puede necesitar menos.
-- El Router aporta valor porque la navegación forma parte del ejemplo. Una vista hoja sencilla no lo necesita.
-- El cliente de red está aislado en actor; los payloads inmutables cruzan límites como valores `Sendable`.
-- Los errores se convierten en copy estable de presentación en el límite de feature; no se filtran detalles de transporte.
-- No se añaden persistencia, analítica, autenticación ni una librería de inyección solo para agrandar el diagrama.
+No es **Clean Architecture estricta**, un framework reutilizable, una app offline-first ni un target de producción listo para App Store. En concreto:
 
-El razonamiento completo, alternativas descartadas y guía de escalado están en [`ARCHITECTURE.md`](ARCHITECTURE.md) y los [registros de decisiones](docs/decisions).
+- los protocolos de repositorio viven hoy bajo `Data`, aunque los consuman casos de uso de Domain;
+- el único target de app no puede impedir imports entre capas;
+- Staging y Production son plantillas ilustrativas con configuración placeholder;
+- el test plan incluido ejecuta suites Swift Testing unitarias y de integración, no UI tests;
+- no existe una base de datos ni persistencia de datos de dominio.
 
-## Límite del repositorio
+Consulta [Limitaciones conocidas](docs/KNOWN-LIMITATIONS.es.md) para ver la lista completa y priorizada.
 
-El dominio de ejemplo describe artículos de arquitectura creados para este repositorio. No está extraído de una aplicación comercial. El código de producto, las credenciales y la configuración operativa permanecen fuera de este repositorio por diseño. Consulta [`SECURITY.md`](SECURITY.md) para la postura pública y [`ASSET_PROVENANCE.md`](ASSET_PROVENANCE.md) para la procedencia de marca.
+## Mapa de documentación
+
+- [Arquitectura](ARCHITECTURE.es.md): límites, composición, navegación, estado, errores, concurrencia y tests.
+- [Estructura](docs/PROJECT-STRUCTURE.es.md): árbol real y guía para colocar archivos.
+- [Decisiones de arquitectura](docs/decisions): decisiones actuales y registros históricos de v1.
+- [Procedencia del código](docs/SOURCE-PROVENANCE.md): snapshot reproducible y allowlist pública.
+- [Referencia SPM v1](docs/V1-SPM-REFERENCE.md): package conservado y nota de migración.
+- [Seguridad](SECURITY.md) y [avisos de terceros](THIRD_PARTY_NOTICES.md).
+
+## Límites de versión y licencia
+
+La versión 2 rompe compatibilidad al pasar de un Swift Package con cuatro targets a esta aplicación Xcode de referencia. El package original sigue disponible en el tag [`1.0.0`](https://github.com/magnoscg/ios-architecture-reference/tree/1.0.0).
+
+El código fuente del repositorio se ofrece bajo [licencia MIT](LICENSE.md). La identidad de OgamLabs y los nombres, datos y recursos de terceros quedan fuera de esa licencia de código; consulta [procedencia de assets](ASSET_PROVENANCE.md) y [avisos de terceros](THIRD_PARTY_NOTICES.md).
 
 ---
 
-<a href="https://ogamlabs.com"><img src="docs/images/ogamlabs-signature.png" alt="OgamLabs" width="200"></a>
+Creado por [Oscar Canton](https://github.com/magnoscg) bajo la identidad de estudio [OgamLabs](https://ogamlabs.com).
 
-Creado por [Oscar Canton](https://github.com/magnoscg) · [Licencia MIT](LICENSE.md)
+**Metadatos del documento**
+
+| Campo | Valor |
+| --- | --- |
+| Autor / Responsable | magnoscg / OgamLabs |
+| Última actualización | 2026-08-04 |
+| Última verificación | 2026-08-04 |
+| Estado | Verificado para el snapshot v2 |
+| Revisión | Trimestral y con cada cambio arquitectónico |
+| Etiquetas | `ios`, `swiftui`, `arquitectura`, `referencia` |

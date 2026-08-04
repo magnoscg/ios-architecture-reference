@@ -1,0 +1,571 @@
+{
+  "features": [
+    {
+      "id": "clean-architecture",
+      "name": "Clean Architecture-inspired Layers",
+      "icon": "building.2.crop.circle.fill",
+      "category": "architecture",
+      "subtitle": "Architecture & Structure",
+      "isImplemented": true,
+      "filesInvolved": [
+        { "name": "ArchitectureModel.swift", "icon": "doc.text.fill" },
+        { "name": "ArchitectureRepository.swift", "icon": "cylinder.split.1x2.fill" },
+        { "name": "ArchitectureUseCaseImpl.swift", "icon": "gearshape.fill" }
+      ],
+      "implementationDetails": "The app uses logical Domain, Data, and feature-presentation layers inside one application target. Use cases depend on repository protocols and map failures before presentation. Folder boundaries are conventions rather than compile-time module boundaries; repository protocols currently live under Data.",
+      "codeExample": {
+        "language": "swift",
+        "code": "struct ArchitectureUseCaseImpl: ArchitectureUseCase {\n    private let repository: ArchitectureRepository\n\n    func execute() async throws -> [ArchitectureModel] {\n        do {\n            let features = try await repository.getFeatures()\n            return features.sorted { $0.category.rawValue < $1.category.rawValue }\n        } catch is CancellationError {\n            throw CancellationError()\n        } catch {\n            throw DomainError.map(error)\n        }\n    }\n}"
+      },
+      "bestPractices": [
+        {
+          "id": "logical-boundaries",
+          "title": "Honest boundaries",
+          "description": "The folders communicate dependency direction, while the single app target means the compiler does not enforce it."
+        },
+        {
+          "id": "domain-models",
+          "title": "Domain models",
+          "description": "Networking DTOs are mapped before the presentation layer consumes feature data."
+        }
+      ]
+    },
+    {
+      "id": "mvvm",
+      "name": "MVVM Pattern",
+      "icon": "rectangle.3.group.fill",
+      "category": "architecture",
+      "subtitle": "Presentation Architecture",
+      "isImplemented": true,
+      "filesInvolved": [
+        { "name": "ArchitectureView.swift", "icon": "rectangle.fill" },
+        { "name": "ArchitectureViewModel.swift", "icon": "cpu.fill" },
+        { "name": "ArchitectureState.swift", "icon": "list.bullet.rectangle.fill" }
+      ],
+      "implementationDetails": "SwiftUI views render explicit state and forward user events. @MainActor, @Observable view models orchestrate use cases, decorator mappers, and feature routers without owning concrete data implementations.",
+      "codeExample": {
+        "language": "swift",
+        "code": "@MainActor\n@Observable\nfinal class ArchitectureViewModel {\n    private(set) var state: ArchitectureState = .idle\n\n    private let useCase: ArchitectureUseCase\n    private let router: ArchitectureRouter\n    private let decoratorMapper: ArchitectureDecoratorMapper\n}"
+      },
+      "bestPractices": [
+        {
+          "id": "view-state",
+          "title": "State-driven views",
+          "description": "Views switch over a finite state enum instead of coordinating data access themselves."
+        },
+        {
+          "id": "injected-collaborators",
+          "title": "Injected collaborators",
+          "description": "View models receive their use case, router, and presentation mapper through initializers."
+        }
+      ]
+    },
+    {
+      "id": "router-pattern",
+      "name": "Typed Router Pattern",
+      "icon": "arrow.triangle.turn.up.right.diamond.fill",
+      "category": "architecture",
+      "subtitle": "Navigation & Routing",
+      "isImplemented": true,
+      "filesInvolved": [
+        { "name": "AppRouter.swift", "icon": "point.topleft.down.curvedto.point.bottomright.up.fill" },
+        { "name": "ArchitectureRouter.swift", "icon": "arrow.right.circle.fill" },
+        { "name": "ArchitectureRouteResolver.swift", "icon": "map.fill" }
+      ],
+      "implementationDetails": "Each feature defines Codable, Hashable route values and a small router protocol. Concrete feature routers push those values into the app-level NavigationPath; route resolvers build destinations.",
+      "codeExample": {
+        "language": "swift",
+        "code": "enum ArchitectureRoute: Hashable, Codable {\n    case detail(featureId: String)\n}\n\n@MainActor\nstruct ArchitectureRouterImpl: ArchitectureRouter {\n    private let appRouter: AppRouter\n\n    func navigateToDetail(featureId: String) {\n        appRouter.push(ArchitectureRoute.detail(featureId: featureId))\n    }\n}"
+      },
+      "bestPractices": [
+        {
+          "id": "typed-routes",
+          "title": "Typed routes",
+          "description": "Navigation values are feature-specific enums rather than unstructured strings."
+        },
+        {
+          "id": "viewmodel-boundary",
+          "title": "View-model boundary",
+          "description": "View models depend on feature router protocols instead of NavigationPath."
+        }
+      ]
+    },
+    {
+      "id": "dependency-injection",
+      "name": "Hierarchical Dependency Injection",
+      "icon": "arrow.triangle.branch",
+      "category": "architecture",
+      "subtitle": "Composition & Lifetimes",
+      "isImplemented": true,
+      "filesInvolved": [
+        { "name": "ArquitecturaApp.swift", "icon": "app.fill" },
+        { "name": "AppDependencies.swift", "icon": "shippingbox.fill" },
+        { "name": "ArchitectureFactory.swift", "icon": "hammer.fill" }
+      ],
+      "implementationDetails": "ArquitecturaApp is the application composition root: it creates the app-lifetime AppDependencies and AppRouterImpl. Feature factories are screen-scoped sub-composition-roots that assemble data sources, repositories, use cases, mappers, routers, view models, and views.",
+      "codeExample": {
+        "language": "swift",
+        "code": "@MainActor\nenum ArchitectureFactory {\n    static func makeView(appRouter: AppRouter) -> ArchitectureView {\n        let viewModel = makeViewModel(appRouter: appRouter)\n        return ArchitectureView(viewModel: viewModel)\n    }\n}"
+      },
+      "bestPractices": [
+        {
+          "id": "app-lifetime",
+          "title": "App lifetime",
+          "description": "The API client and app router are created once at the application boundary."
+        },
+        {
+          "id": "screen-lifetime",
+          "title": "Screen lifetime",
+          "description": "Feature factories create the concrete screen graph while exposing only a configured view."
+        }
+      ]
+    },
+    {
+      "id": "feature-based",
+      "name": "Layered + Feature Organization",
+      "icon": "folder.fill",
+      "category": "architecture",
+      "subtitle": "Project Structure",
+      "isImplemented": true,
+      "filesInvolved": [
+        { "name": "Domain/Architecture", "icon": "folder.fill" },
+        { "name": "Data/Architecture", "icon": "folder.fill" },
+        { "name": "Features/Architecture", "icon": "folder.fill" }
+      ],
+      "implementationDetails": "The repository uses a hybrid organization. Domain and Data are top-level layers subdivided by feature. Features groups presentation concerns vertically into DI, Navigation, Presentation, and UI. It is not a full vertical-slice layout.",
+      "codeExample": null,
+      "bestPractices": [
+        {
+          "id": "matching-feature-names",
+          "title": "Matching feature names",
+          "description": "Architecture, ArchitectureDetail, PokemonList, and PokemonDetail use matching names across their layers."
+        },
+        {
+          "id": "presentation-grouping",
+          "title": "Presentation grouping",
+          "description": "UI state, decorator mapping, navigation, and DI stay together under each presentation feature."
+        }
+      ]
+    },
+    {
+      "id": "swiftui",
+      "name": "SwiftUI",
+      "icon": "rectangle.stack.fill",
+      "category": "ui",
+      "subtitle": "User Interface",
+      "isImplemented": true,
+      "filesInvolved": [
+        { "name": "ArchitectureView.swift", "icon": "rectangle.fill" },
+        { "name": "ArchitectureCardRow.swift", "icon": "rectangle.inset.filled" },
+        { "name": "ArchitectureDetailView.swift", "icon": "doc.richtext.fill" }
+      ],
+      "implementationDetails": "Screens are composed with SwiftUI and render idle, loading, loaded, and error states. Reusable components and design tokens keep the view layer focused on rendering and interaction.",
+      "codeExample": {
+        "language": "swift",
+        "code": "Group {\n    switch viewModel.state {\n    case .idle:\n        Color.clear\n    case .loading:\n        loadingView\n    case let .loaded(sections):\n        loadedView(sections: sections)\n    case let .error(error):\n        errorView(error: error)\n    }\n}"
+      },
+      "bestPractices": [
+        {
+          "id": "explicit-rendering",
+          "title": "Explicit rendering",
+          "description": "Every screen state has a visible SwiftUI branch."
+        },
+        {
+          "id": "component-extraction",
+          "title": "Component extraction",
+          "description": "Rows, headers, cards, and detail sections live in focused component files."
+        }
+      ]
+    },
+    {
+      "id": "observable",
+      "name": "@Observable",
+      "icon": "eye.fill",
+      "category": "ui",
+      "subtitle": "Observation",
+      "isImplemented": true,
+      "filesInvolved": [
+        { "name": "ArchitectureViewModel.swift", "icon": "cpu.fill" },
+        { "name": "PokemonListViewModel.swift", "icon": "cpu.fill" },
+        { "name": "AppRouterImpl.swift", "icon": "point.topleft.down.curvedto.point.bottomright.up.fill" }
+      ],
+      "implementationDetails": "Mutable UI coordinators use the Observation framework. View models and the concrete app router are @Observable and main-actor isolated; SwiftUI stores injected view models with @State and binds the router with @Bindable.",
+      "codeExample": {
+        "language": "swift",
+        "code": "@MainActor\n@Observable\nfinal class PokemonListViewModel {\n    private(set) var state: PokemonListState = .idle\n    private(set) var isLoadingMore = false\n    private(set) var paginationError: ErrorDecorator?\n}"
+      },
+      "bestPractices": [
+        {
+          "id": "read-only-state",
+          "title": "Read-only state",
+          "description": "Presentation state uses private(set) so views observe it without mutating it directly."
+        },
+        {
+          "id": "actor-isolation",
+          "title": "Actor isolation",
+          "description": "Observable UI state is explicitly isolated to MainActor."
+        }
+      ]
+    },
+    {
+      "id": "design-tokens",
+      "name": "Design System Tokens",
+      "icon": "paintpalette.fill",
+      "category": "ui",
+      "subtitle": "Visual System",
+      "isImplemented": true,
+      "filesInvolved": [
+        { "name": "AppColors.swift", "icon": "paintbrush.fill" },
+        { "name": "AppTypography.swift", "icon": "textformat" },
+        { "name": "Spacing.swift", "icon": "ruler.fill" }
+      ],
+      "implementationDetails": "Core/DesignSystem centralizes adaptive colors, semantic typography, icon sizes, and spacing. AppColors resolves light and dark values at render time.",
+      "codeExample": {
+        "language": "swift",
+        "code": "enum Spacing {\n    static let xs: CGFloat = 4\n    static let sm: CGFloat = 8\n    static let md: CGFloat = 16\n    static let lg: CGFloat = 24\n    static let xl: CGFloat = 32\n    static let xxl: CGFloat = 48\n\n    static let zero: CGFloat = 0\n}"
+      },
+      "bestPractices": [
+        {
+          "id": "semantic-colors",
+          "title": "Semantic colors",
+          "description": "Views consume names such as text, surface, success, and divider instead of literals."
+        },
+        {
+          "id": "dynamic-type",
+          "title": "System typography",
+          "description": "Typography tokens wrap semantic SwiftUI fonts that participate in Dynamic Type."
+        }
+      ]
+    },
+    {
+      "id": "view-modifiers",
+      "name": "Reusable ViewModifiers",
+      "icon": "slider.horizontal.3",
+      "category": "ui",
+      "subtitle": "Reusable Presentation",
+      "isImplemented": true,
+      "filesInvolved": [
+        { "name": "GlassmorphismCardModifier.swift", "icon": "rectangle.on.rectangle.angled" },
+        { "name": "PrimaryButtonStyleModifier.swift", "icon": "button.programmable" },
+        { "name": "StaggeredAppearModifier.swift", "icon": "sparkles" }
+      ],
+      "implementationDetails": "Shared SwiftUI modifiers encapsulate list styling, card materials, button presentation, and entrance animations. The glass card respects Reduce Transparency and the staggered animation respects Reduce Motion.",
+      "codeExample": {
+        "language": "swift",
+        "code": "extension View {\n    func glassmorphismCard() -> some View {\n        modifier(GlassmorphismCardModifier())\n    }\n}"
+      },
+      "bestPractices": [
+        {
+          "id": "accessibility-settings",
+          "title": "Accessibility settings",
+          "description": "Visual effects provide fallbacks for reduced transparency and reduced motion."
+        },
+        {
+          "id": "shared-styling",
+          "title": "Shared styling",
+          "description": "Repeated presentation rules are exposed through focused View extensions."
+        }
+      ]
+    },
+    {
+      "id": "state-separation",
+      "name": "Explicit View State",
+      "icon": "list.bullet.rectangle.fill",
+      "category": "ui",
+      "subtitle": "State Modeling",
+      "isImplemented": true,
+      "filesInvolved": [
+        { "name": "ArchitectureState.swift", "icon": "list.bullet.rectangle.fill" },
+        { "name": "PokemonListState.swift", "icon": "list.bullet.rectangle.fill" },
+        { "name": "PokemonDetailState.swift", "icon": "list.bullet.rectangle.fill" }
+      ],
+      "implementationDetails": "Feature state is modeled in dedicated enums rather than hidden in combinations of booleans. Each enum carries the decorator required by its loaded or error branch.",
+      "codeExample": {
+        "language": "swift",
+        "code": "enum ArchitectureState: Equatable {\n    case idle\n    case loading\n    case loaded([ArchitectureSectionDecorator])\n    case error(ErrorDecorator)\n}"
+      },
+      "bestPractices": [
+        {
+          "id": "finite-states",
+          "title": "Finite states",
+          "description": "The enum prevents incompatible loading, success, and failure states from coexisting."
+        },
+        {
+          "id": "presentation-values",
+          "title": "Presentation values",
+          "description": "Loaded state carries decorators already prepared for the view."
+        }
+      ]
+    },
+    {
+      "id": "api-client",
+      "name": "Centralized APIClient",
+      "icon": "network",
+      "category": "networking",
+      "subtitle": "HTTP Client",
+      "isImplemented": true,
+      "filesInvolved": [
+        { "name": "APIClient.swift", "icon": "antenna.radiowaves.left.and.right" },
+        { "name": "APIClientImpl.swift", "icon": "network" },
+        { "name": "RequestInterceptor.swift", "icon": "link" }
+      ],
+      "implementationDetails": "APIClientImpl builds URLRequests, executes them through DefaultInterceptorChain, validates 2xx responses, creates a fresh decoder per request, and maps transport or decoding failures to APIError. It supports environment-based Endpoint values and self-contained APIEndpoint values.",
+      "codeExample": {
+        "language": "swift",
+        "code": "protocol APIClient: Sendable {\n    func request<T: Decodable & Sendable>(_ endpoint: Endpoint) async throws -> T\n    func request<T: Decodable & Sendable>(_ endpoint: some APIEndpoint) async throws -> T\n}"
+      },
+      "bestPractices": [
+        {
+          "id": "injected-client",
+          "title": "Injected client",
+          "description": "Remote data sources receive the APIClient protocol from their feature factory."
+        },
+        {
+          "id": "fresh-decoder",
+          "title": "Fresh decoder",
+          "description": "The implementation creates a JSONDecoder per request instead of sharing mutable decoder state."
+        }
+      ]
+    },
+    {
+      "id": "endpoint-builder",
+      "name": "Endpoint Builders",
+      "icon": "link",
+      "category": "networking",
+      "subtitle": "Request Modeling",
+      "isImplemented": true,
+      "filesInvolved": [
+        { "name": "Endpoint.swift", "icon": "link" },
+        { "name": "APIEndpoint.swift", "icon": "point.3.connected.trianglepath.dotted" },
+        { "name": "PokeAPIEndpoint.swift", "icon": "globe" }
+      ],
+      "implementationDetails": "Endpoint models requests that use the injected environment base URL. APIEndpoint models external services that carry their own base URL. PokeAPIEndpoint provides typed factory methods for list, detail, and species paths.",
+      "codeExample": {
+        "language": "swift",
+        "code": "static func pokemonList(limit: Int, offset: Int) -> PokeAPIEndpoint {\n    PokeAPIEndpoint(path: \"/pokemon\",\n                    queryParameters: [\"limit\": limit, \"offset\": offset])\n}"
+      },
+      "bestPractices": [
+        {
+          "id": "deterministic-query",
+          "title": "Deterministic query order",
+          "description": "Request builders sort query parameters before creating URLQueryItem values."
+        },
+        {
+          "id": "separate-base-url",
+          "title": "Explicit base URL ownership",
+          "description": "Internal and external endpoint types make the source of their base URL explicit."
+        }
+      ]
+    },
+    {
+      "id": "typed-errors",
+      "name": "Typed API Errors",
+      "icon": "exclamationmark.triangle.fill",
+      "category": "networking",
+      "subtitle": "Networking Failures",
+      "isImplemented": true,
+      "filesInvolved": [
+        { "name": "APIError.swift", "icon": "exclamationmark.triangle.fill" },
+        { "name": "APIErrorResponse.swift", "icon": "doc.text.fill" },
+        { "name": "RetryPolicy.swift", "icon": "arrow.clockwise" }
+      ],
+      "implementationDetails": "APIError preserves transport, HTTP status and body data, decoding, invalid URL, and wrapped unknown failures. Its retryability policy treats transient URL errors, HTTP 5xx, and 429 as retry candidates.",
+      "codeExample": {
+        "language": "swift",
+        "code": "nonisolated enum APIError: Error {\n    case networkError(URLError)\n    case httpError(statusCode: Int, data: Data?)\n    case decodingError(DecodingError)\n    case invalidURL\n    case unknown(SendableError)\n}"
+      },
+      "bestPractices": [
+        {
+          "id": "preserve-status-data",
+          "title": "Preserved response context",
+          "description": "HTTP errors retain status code and response data for later interpretation."
+        },
+        {
+          "id": "cancellation",
+          "title": "Cancellation",
+          "description": "Cancelled URL requests become CancellationError instead of a user-facing network failure."
+        }
+      ]
+    },
+    {
+      "id": "error-mapping",
+      "name": "Error Layer Mapping",
+      "icon": "arrow.triangle.2.circlepath",
+      "category": "networking",
+      "subtitle": "Error Boundaries",
+      "isImplemented": true,
+      "filesInvolved": [
+        { "name": "DomainError+Mapping.swift", "icon": "arrow.triangle.2.circlepath" },
+        { "name": "PokemonListUseCaseImpl.swift", "icon": "gearshape.fill" },
+        { "name": "ErrorDecorator.swift", "icon": "rectangle.and.pencil.and.ellipsis" }
+      ],
+      "implementationDetails": "Repositories surface their data-layer failures. Use cases convert them with DomainError.map, and view models convert DomainError into localized ErrorDecorator values. This is the implemented mapping location; repositories do not perform the domain mapping.",
+      "codeExample": {
+        "language": "swift",
+        "code": "static func map(_ error: Error) -> DomainError {\n    if let domainError = error as? DomainError {\n        return domainError\n    }\n\n    if let apiError = error as? APIError {\n        return mapAPIError(apiError)\n    }\n\n    return .unknown\n}"
+      },
+      "bestPractices": [
+        {
+          "id": "usecase-boundary",
+          "title": "Use-case boundary",
+          "description": "Use cases are the point where data errors become feature-facing domain errors."
+        },
+        {
+          "id": "localized-presentation",
+          "title": "Localized presentation",
+          "description": "ErrorDecorator owns user-facing localized text and retry affordance."
+        }
+      ]
+    },
+    {
+      "id": "pokemon-api",
+      "name": "PokeAPI Example",
+      "icon": "globe",
+      "category": "networking",
+      "subtitle": "Runnable Integration",
+      "isImplemented": true,
+      "filesInvolved": [
+        { "name": "PokeAPIEndpoint.swift", "icon": "globe" },
+        { "name": "PokemonListRemoteDataSourceImpl.swift", "icon": "arrow.down.circle.fill" },
+        { "name": "PokemonListFactory.swift", "icon": "hammer.fill" }
+      ],
+      "implementationDetails": "The Try It flow is a working PokeAPI integration. It loads a paginated list, fetches item details in a throwing task group, maps DTOs to domain and presentation models, and navigates to a detail screen. The catalog uses the neutral SF Symbol globe; it bundles no Pokeball artwork.",
+      "codeExample": {
+        "language": "swift",
+        "code": "func fetchPokemonList(limit: Int, offset: Int) async throws -> PokemonListResponseDTO {\n    let endpoint = PokeAPIEndpoint.pokemonList(limit: limit, offset: offset)\n    return try await apiClient.request(endpoint)\n}"
+      },
+      "bestPractices": [
+        {
+          "id": "shared-client",
+          "title": "Shared app client",
+          "description": "Pokemon feature factories receive the app-lifetime APIClient through AppDependencies."
+        },
+        {
+          "id": "partial-detail-failure",
+          "title": "Partial detail failure",
+          "description": "A failed item-detail request is logged and omitted without discarding successful list items."
+        }
+      ]
+    },
+    {
+      "id": "ssl-pinning",
+      "name": "SSL Public Key Pinning",
+      "icon": "lock.shield.fill",
+      "category": "security",
+      "subtitle": "Transport Security",
+      "isImplemented": true,
+      "filesInvolved": [
+        { "name": "SSLPinningDelegate.swift", "icon": "lock.fill" },
+        { "name": "URLSessionFactory.swift", "icon": "network.badge.shield.half.filled" },
+        { "name": "EnvironmentConfiguration.swift", "icon": "gearshape.fill" }
+      ],
+      "implementationDetails": "SSLPinningDelegate validates server trust and compares the leaf certificate public-key SHA-256 hash with configured hashes. URLSessionFactory installs the delegate only when pinning is enabled and at least one hash exists. Development disables pinning; staging and production values are templates until replaced with real service configuration.",
+      "codeExample": {
+        "language": "swift",
+        "code": "if configuration.sslPinningEnabled, !configuration.sslPublicKeyHashes.isEmpty {\n    let delegate = SSLPinningDelegate(publicKeyHashes: configuration.sslPublicKeyHashes,\n                                      isEnabled: true)\n    return URLSession(configuration: sessionConfig,\n                      delegate: delegate,\n                      delegateQueue: nil)\n}"
+      },
+      "bestPractices": [
+        {
+          "id": "config-consistency",
+          "title": "Configuration consistency",
+          "description": "Debug builds assert when pinning is enabled without any configured hashes."
+        },
+        {
+          "id": "template-boundary",
+          "title": "Template boundary",
+          "description": "Placeholder staging and production values are identified as templates, not deployment proof."
+        }
+      ]
+    },
+    {
+      "id": "environment-config",
+      "name": "Environment Configuration",
+      "icon": "gearshape.2.fill",
+      "category": "security",
+      "subtitle": "Build Configuration",
+      "isImplemented": true,
+      "filesInvolved": [
+        { "name": "Development.xcconfig", "icon": "hammer.fill" },
+        { "name": "Staging.xcconfig", "icon": "wrench.and.screwdriver.fill" },
+        { "name": "Production.xcconfig", "icon": "shippingbox.fill" }
+      ],
+      "implementationDetails": "Base and per-environment xcconfig files populate Info.plist values. EnvironmentConfigurationImpl validates the base URL and reads API version, timeout, pinning flag, and public-key hashes. Development is the runnable reference; staging and production remain illustrative templates.",
+      "codeExample": {
+        "language": "swift",
+        "code": "protocol EnvironmentConfiguration: Sendable {\n    var environment: AppEnvironment { get }\n    var baseURL: URL { get }\n    var apiVersion: String { get }\n    var requestTimeout: TimeInterval { get }\n    var sslPinningEnabled: Bool { get }\n    var sslPublicKeyHashes: [String] { get }\n}"
+      },
+      "bestPractices": [
+        {
+          "id": "plist-bridge",
+          "title": "Info.plist bridge",
+          "description": "Build settings flow into Info.plist and are parsed by one configuration implementation."
+        },
+        {
+          "id": "validated-url",
+          "title": "Validated required value",
+          "description": "Missing or invalid base URLs fail dependency initialization instead of being silently guessed."
+        }
+      ]
+    },
+    {
+      "id": "swift-testing",
+      "name": "Swift Testing",
+      "icon": "checkmark.seal.fill",
+      "category": "testing",
+      "subtitle": "Automated Tests",
+      "isImplemented": true,
+      "filesInvolved": [
+        { "name": "ArquitecturaTests.xctestplan", "icon": "checklist" },
+        { "name": "ArchitectureUseCaseTests.swift", "icon": "checkmark.seal.fill" },
+        { "name": "PokeAPIEndpointTests.swift", "icon": "network" }
+      ],
+      "implementationDetails": "The unit-test target uses Swift Testing suites, tests, expectations, requirements, and parameterized cases. Tests cover navigation, networking, mappers, repositories, use cases, view models, and the bundled architecture data. There is no UI-test source suite in the current reference.",
+      "codeExample": {
+        "language": "swift",
+        "code": "@Test(\"Execute calls repository once\")\nfunc executeCallsRepositoryOnce() async throws {\n    let mockRepository = MockArchitectureRepository()\n    await mockRepository.setGetFeaturesResult(.success([]))\n    let useCase = ArchitectureUseCaseImpl(repository: mockRepository)\n\n    _ = try await useCase.execute()\n\n    let callCount = await mockRepository.getFeaturesCallCount\n    #expect(callCount == 1)\n}"
+      },
+      "bestPractices": [
+        {
+          "id": "swift-testing-api",
+          "title": "Swift Testing API",
+          "description": "Tests use @Suite, @Test, #expect, and #require instead of XCTest assertions."
+        },
+        {
+          "id": "test-plan",
+          "title": "Shared test plan",
+          "description": "ArquitecturaTests.xctestplan defines the unit-test target used by the shared scheme."
+        }
+      ]
+    },
+    {
+      "id": "testable-arch",
+      "name": "Protocol-based Testability",
+      "icon": "testtube.2",
+      "category": "testing",
+      "subtitle": "Test Doubles",
+      "isImplemented": true,
+      "filesInvolved": [
+        { "name": "ArchitectureRepository.swift", "icon": "doc.badge.gearshape.fill" },
+        { "name": "MockArchitectureRepository.swift", "icon": "person.crop.circle.badge.checkmark" },
+        { "name": "ArchitectureUseCaseTests.swift", "icon": "checkmark.seal.fill" }
+      ],
+      "implementationDetails": "Factories inject protocol-typed collaborators into repositories, use cases, view models, routers, and mappers. Tests replace those collaborators with focused mocks; actor-based mocks safely track mutable async interactions.",
+      "codeExample": {
+        "language": "swift",
+        "code": "actor MockArchitectureRepository: ArchitectureRepository {\n    private(set) var getFeaturesResult: Result<[ArchitectureModel], Error> = .success([])\n    private(set) var getFeaturesCallCount = 0\n\n    func getFeatures() async throws -> [ArchitectureModel] {\n        getFeaturesCallCount += 1\n\n        switch getFeaturesResult {\n        case let .success(features):\n            return features\n        case let .failure(error):\n            throw error\n        }\n    }\n}"
+      },
+      "bestPractices": [
+        {
+          "id": "protocol-seams",
+          "title": "Protocol seams",
+          "description": "Tests replace collaborators at existing initializer boundaries instead of using global state."
+        },
+        {
+          "id": "actor-mocks",
+          "title": "Actor mocks",
+          "description": "Async repository mocks isolate their configured results and invocation counters."
+        }
+      ]
+    }
+  ]
+}
