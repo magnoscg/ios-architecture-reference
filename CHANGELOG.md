@@ -4,11 +4,9 @@ All notable changes to this project are documented here. The repository uses sem
 
 ## Unreleased
 
-The changes below are prepared for `2.0.0`. They remain unreleased until the
-Gitflow integration, tag, GitHub Release, and other remote publication steps are
-separately authorized and completed.
+No unreleased changes.
 
-## 2.0.0 - Pending
+## [2.0.0] - 2026-08-04
 
 ### Breaking
 
@@ -51,6 +49,7 @@ separately authorized and completed.
 - Fifteen Swift Testing checks across domain, mapping, networking, and UI state.
 - Bilingual recruiter narrative, architecture decision records, security documentation, and first-party OgamLabs presentation assets.
 
+[2.0.0]: https://github.com/magnoscg/ios-architecture-reference/releases/tag/2.0.0
 [1.0.0]: https://github.com/magnoscg/ios-architecture-reference/tree/1.0.0
 
 ---
