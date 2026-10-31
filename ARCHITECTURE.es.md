@@ -27,10 +27,11 @@ Es una referencia educativa, no una afirmación de que cualquier producto iOS ne
 | Persistencia | Sin base de datos de dominio; solo rutas en `@SceneStorage` |
 | Dependencias | Solo frameworks de Apple; sin paquetes Swift de terceros |
 
-Los dos diagramas de presentación y sus alternativas textuales están en el README:
+Los diagramas de presentación están en el README:
 
-- [Composición y ciclos de vida](README.es.md#composición-y-ciclos-de-vida)
-- [Flujo en ejecución](README.es.md#flujo-en-ejecución)
+- [Capas y dirección de dependencias](README.es.md#-arquitectura)
+- [Vida de una petición](README.es.md#-vida-de-una-petición)
+- [Composición y ciclos de vida](README.es.md#-dentro-de-una-feature)
 
 ## Raíz de composición jerárquica
 
@@ -183,7 +184,7 @@ El proyecto Xcode contiene un target nominal `ArquitecturaUITests`, pero no hay 
 | --- | --- |
 | Autor / Responsable | magnoscg / OgamLabs |
 | Creado | 2026-08-04 |
-| Última actualización | 2026-08-04 |
+| Última actualización | 2026-10-31 |
 | Última verificación | 2026-08-04 |
 | Estado | Verificado para el snapshot v2 |
 | Revisión | Trimestral y con cada cambio arquitectónico |

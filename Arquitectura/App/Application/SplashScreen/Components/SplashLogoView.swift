@@ -43,7 +43,7 @@ struct SplashLogoView: View {
     private var logoImage: some View {
         Image(systemName: "swift")
             .resizable()
-            .aspectRatio(contentMode: .fit)
+            .scaledToFit()
             .frame(width: 80, height: 80)
             .foregroundStyle(LinearGradient(colors: [Color.orange, Color.orange.opacity(0.8)],
                                             startPoint: .topLeading,

@@ -52,7 +52,7 @@ private extension PokemonDetailHeaderView {
             case let .success(image):
                 image
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
+                    .scaledToFit()
                     .frame(width: imageSize, height: imageSize)
                     .shadow(color: primaryColor.opacity(0.6), radius: 32, x: 0, y: 16)
                     .scaleEffect(imageLoaded ? 1.0 : 0.7)

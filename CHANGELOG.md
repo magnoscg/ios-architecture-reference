@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The repository uses sem
 
 No unreleased changes.
 
+## [2.0.1] - 2026-10-31
+
+### Changed
+
+- Rewrote the English and Spanish READMEs as a visual architecture overview: highlights, layer, request and composition diagrams, real code excerpts, design trade-offs, project history and author links.
+- Pointed the architecture documents at the new README diagram sections.
+- Adapted five Swift files to the SwiftFormat 0.64.3 and SwiftLint 0.65.1 rules now used by CI (`redundantReturn`, `repeatedGuard`, `legacy_swiftui_aspect_ratio`). Behaviour and rendering are unchanged.
+
 ## [2.0.0] - 2026-08-04
 
 ### Breaking
@@ -49,6 +57,7 @@ No unreleased changes.
 - Fifteen Swift Testing checks across domain, mapping, networking, and UI state.
 - Bilingual recruiter narrative, architecture decision records, security documentation, and first-party OgamLabs presentation assets.
 
+[2.0.1]: https://github.com/magnoscg/ios-architecture-reference/releases/tag/2.0.1
 [2.0.0]: https://github.com/magnoscg/ios-architecture-reference/releases/tag/2.0.0
 [1.0.0]: https://github.com/magnoscg/ios-architecture-reference/tree/1.0.0
 
@@ -59,6 +68,6 @@ No unreleased changes.
 | Field | Value |
 | --- | --- |
 | Author / Owner | magnoscg / OgamLabs |
-| Last Updated / Verified | 2026-08-04 |
+| Last Updated / Verified | 2026-10-31 |
 | Review Schedule | Every release |
 | Labels | `changelog`, `release`, `semver` |

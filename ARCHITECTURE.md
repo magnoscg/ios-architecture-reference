@@ -27,10 +27,11 @@ The target is an educational reference, not a claim that every iOS product needs
 | Persistence | No domain database; route data only uses `@SceneStorage` |
 | Dependencies | Apple frameworks only; no third-party Swift packages |
 
-The two presentation diagrams and their text fallbacks live in the README:
+The presentation diagrams live in the README:
 
-- [Composition and lifetimes](README.md#composition-and-lifetimes)
-- [Runtime flow](README.md#runtime-flow)
+- [Layers and dependency direction](README.md#-architecture)
+- [Life of a request](README.md#-life-of-a-request)
+- [Composition and lifetimes](README.md#-inside-a-feature)
 
 ## Hierarchical composition root
 
@@ -183,7 +184,7 @@ Run the same public checks with `make ci`. The pipeline uses a dynamically selec
 | --- | --- |
 | Author / Owner | magnoscg / OgamLabs |
 | Created | 2026-08-04 |
-| Last Updated | 2026-08-04 |
+| Last Updated | 2026-10-31 |
 | Last Verified | 2026-08-04 |
 | Status | Verified for the v2 source snapshot |
 | Review Schedule | Quarterly and on architectural change |

@@ -40,7 +40,7 @@ private extension PokemonListCardView {
             case let .success(image):
                 image
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
+                    .scaledToFit()
                     .frame(width: 80, height: 80)
                     .accessibilityLabel("\(pokemon.name) artwork")
 
