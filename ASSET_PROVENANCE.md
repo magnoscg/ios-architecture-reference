@@ -69,7 +69,7 @@ The application pairs below were calculated with the WCAG sRGB relative-luminanc
 
 ## First-party OgamLabs identity assets
 
-These assets are retained from the original public reference and remain documented even though the v2 README and social preview do not embed them.
+These assets are retained from the original public reference. The README author section embeds the signature; the social preview uses neither asset.
 
 ### Horizontal source logo
 
@@ -111,7 +111,7 @@ The [MIT License](LICENSE.md) covers repository source code and documentation te
 | --- | --- |
 | Author / Owner | magnoscg / OgamLabs |
 | Created | 2026-08-04 |
-| Last Updated | 2026-08-04 |
+| Last Updated | 2026-10-31 |
 | Last Verified | 2026-08-04 |
 | Status | Verified against `scripts/assets.sha256` |
 | Review Schedule | On every asset change |
