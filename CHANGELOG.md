@@ -4,7 +4,10 @@ All notable changes to this project are documented here. The repository uses sem
 
 ## Unreleased
 
-No unreleased changes.
+### Changed
+
+- Rewrote the English and Spanish READMEs as a visual architecture overview: highlights, layer, request and composition diagrams, real code excerpts, design trade-offs, project history and author links.
+- Pointed the architecture documents at the new README diagram sections.
 
 ## [2.0.0] - 2026-08-04
 
