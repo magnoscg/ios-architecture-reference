@@ -107,6 +107,7 @@ The networking changes between `c046aee55f3fd25ff8508014660a06fe44b0fb41` and `5
 - applied the public `nonisolated private` modifier order to three new declarations;
 - reapplied the existing public wrapping to the `makeResponse` test helper, which gained a `headerFields` parameter, and wrapped its return type the way SwiftFormat already wraps `RetryInterceptor.intercept`;
 - moved one long test pin into a local constant to stay within 120 columns;
+- split the elliptic-curve algorithm table in `SSLPinningDelegate` into one named constant per curve, so SwiftFormat's collection wrapping holds within 120 columns; the encoded bytes are unchanged;
 - updated the typed-error and SSL-pinning catalogue entries, the architecture documents, and the stated test totals.
 
 Every other exported file under the allowlist is identical to the source commit or differs only by the sanitization listed above.
