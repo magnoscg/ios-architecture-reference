@@ -50,6 +50,10 @@ This is easily reversible at low-to-medium cost because all collaborators alread
 
 The decision succeeds while every screen graph can be found from its factory, no singleton/service locator is needed, and tests inject doubles through the same protocols.
 
+## Amendment — 2026-11-03
+
+The app router is no longer an application-lifetime object. `ArquitecturaApp` now owns only `AppDependencies` and the launch state, and each window's `AppRootView` creates its own `AppRouterImpl` and `AppNavigationCoordinator`, so iPad windows navigate and restore independently. Feature factories keep receiving the router as an `AppRouter`, so the hierarchy below the window is unchanged.
+
 ---
 
 **Document Metadata**
@@ -58,6 +62,7 @@ The decision succeeds while every screen graph can be found from its factory, no
 | --- | --- |
 | Author / Owner | magnoscg / OgamLabs |
 | Created / Verified | 2026-08-04 |
+| Amended | 2026-11-03 |
 | Status | Accepted |
 | Review Schedule | When dependency lifetimes or graph size change |
 | Labels | `adr`, `composition-root`, `dependency-injection`, `factory` |
