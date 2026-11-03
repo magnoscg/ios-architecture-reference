@@ -55,7 +55,7 @@ Swift 6 language mode, `@MainActor` ViewModels, task groups, `async let`, and ca
 
 **🧪 253 tests**
 
-30 Swift Testing suites mirror the source tree: mappers, repositories, use cases, ViewModels and navigation.
+33 Swift Testing suites mirror the source tree: mappers, repositories, use cases, ViewModels and navigation.
 
 </td>
 <td width="33%" valign="top">
