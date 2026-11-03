@@ -212,7 +212,7 @@ fi
 grep -Fq 'REPLACE_WITH_YOUR_PRODUCTION_CERTIFICATE_HASH' \
   Arquitectura/App/Config/Xcconfig/Production.xcconfig || \
   fail "Production must remain an illustrative template until configured by a consumer"
-grep -Fq 'c046aee55f3fd25ff8508014660a06fe44b0fb41' docs/SOURCE-PROVENANCE.md || \
+grep -Fq '51c05fe810f8d842d25e93701c456501bdac4066' docs/SOURCE-PROVENANCE.md || \
   fail "source provenance must identify the fixed private source snapshot"
 
 ./scripts/count-swift-tests.sh
