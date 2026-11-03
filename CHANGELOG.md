@@ -4,7 +4,26 @@ All notable changes to this project are documented here. The repository uses sem
 
 ## Unreleased
 
-No unreleased changes.
+### Changed
+
+- Re-imported the reference app from source commit `c046aee55f3fd25ff8508014660a06fe44b0fb41`; see [Source provenance](docs/SOURCE-PROVENANCE.md).
+- Moved Repository protocols to `Domain/<Concept>/Repositories`; `Data` now holds only their implementations.
+- Moved `APIError` → `DomainError` mapping to `Data/Common`. Repositories wrap their work in `DomainError.catching`, which keeps cancellation as `CancellationError`, and Use Cases no longer map errors.
+- Organized `Domain` and `Data` by concept: the Pokémon list and detail screens share `Domain/Pokemon` and `Data/Pokemon`, and the list model is now `PokemonSummaryModel`.
+- Gave each window its own `AppRouterImpl` and `AppNavigationCoordinator` through a new `AppRootView`. The `AppRouter` protocol now offers only `push`, `pop`, and `popToRoot`.
+- Made deep links replace the stack, and held a link received before restoration until the saved path is restored. A failed encoding no longer overwrites the saved path.
+- Made the bundled JSON Data Source do no I/O in its initializer and decode in a `@concurrent` function; a missing or invalid file is now an error instead of an empty catalogue.
+- Updated the catalogue entries, READMEs, architecture, structure, and limitation documents, and amended ADR-0004, ADR-0005, and ADR-0006 to match.
+
+### Fixed
+
+- `APIClientImpl` turns `URLError.cancelled` into `CancellationError` only when the task was cancelled, so a rejected pinning challenge stays a network error, and the retry backoff rethrows its `CancellationError`.
+- `RetryInterceptor` checks cancellation before retrying and only resends idempotent methods or requests with a non-empty `Idempotency-Key`.
+- The Pokémon list fails when every detail request fails instead of showing an empty page.
+
+### Added
+
+- Tests for the retry interceptor, Data-side error mapping, `ErrorDecorator` mapping, the detail repository, the list Use Case, and deep-link launch ordering: 226 Swift Testing cases across 30 suites.
 
 ## [2.0.1] - 2026-10-31
 

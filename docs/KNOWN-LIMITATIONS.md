@@ -18,21 +18,13 @@ All production source is compiled into `Arquitectura`. `App`, `Core`, `Domain`, 
 
 **Follow-up question:** modularize only after build ownership, reuse, or team boundaries justify the cost. See [ADR-0004](decisions/0004-single-app-target-logical-boundaries.md).
 
-### Repository contracts live in Data
+### Presentation error type lives in Core
 
-Domain Use Cases depend on Repository protocols that are physically declared under `Data/<Feature>/Repositories`.
+Repository protocols live in Domain and transport-to-domain mapping happens in Data ([`DomainError+Mapping.swift`](../Arquitectura/Data/Common/DomainError+Mapping.swift)), so Domain no longer knows `APIError`. `ErrorDecorator`, however, is stored under Core even though it represents user-facing presentation state, because every feature shares it.
 
-**Consequence:** the source tree does not express the strict dependency-inversion placement normally expected from Clean Architecture.
+**Consequence:** Core contains a presentation concern.
 
-**Follow-up question:** move contracts into Domain and leave only implementations in Data if the team chooses strict inward ownership.
-
-### Error mapping crosses outward
-
-`DomainError+Mapping.swift` knows `APIError` from Core networking. `ErrorDecorator` is stored under Core even though it represents user-facing presentation state.
-
-**Consequence:** Domain is not framework/transport-independent, and Core contains a presentation concern.
-
-**Follow-up question:** perform transport-to-domain mapping at the Data boundary and move UI error decoration into Features or a focused presentation-support zone.
+**Follow-up question:** move UI error decoration into a focused presentation-support zone if Core is ever extracted into its own module.
 
 ## Composition and navigation limitations
 
@@ -44,13 +36,13 @@ Domain Use Cases depend on Repository protocols that are physically declared und
 
 **Follow-up question:** move cross-feature intent to an app-level route/coordinator contract if independent feature ownership becomes important.
 
-### One app router with multiwindow enabled
+### Multiwindow and cold-launch navigation are unit-tested only
 
-`ArquitecturaApp` owns one `AppRouterImpl`, while the Info.plist permits multiple scenes. `RootNavigationView` creates a scene-scoped coordinator and persists a path with `@SceneStorage`.
+Each window's `AppRootView` owns its `AppRouterImpl` and `AppNavigationCoordinator`, and the coordinator holds a deep link received before restoration until the saved path has been restored. Unit tests cover those ordering cases on the coordinator.
 
-**Consequence:** the sample has not established independent router ownership for multiple active windows. It also has not exhaustively validated ordering between cold-launch restoration and incoming deep links.
+**Consequence:** no UI test exercises several active windows or a cold launch from a deep link on a simulator.
 
-**Follow-up question:** make navigation ownership explicitly scene-scoped and add cold-launch/multiwindow scenarios before adopting this shape in a multiwindow product.
+**Follow-up question:** add those scenarios once a UI-test suite exists.
 
 ### Heterogeneous `NavigationPath`
 
@@ -66,13 +58,13 @@ The app target uses `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`. Async function 
 
 **Consequence:** documentation must not claim that Domain or Data always executes in the background.
 
-### Bundled JSON is decoded synchronously
+### Bundled JSON is decoded on every request
 
-`ArchitectureDetailJSONDataSourceImpl` reads and decodes the bundled catalogue during feature-graph construction and caches it for that graph.
+`ArchitectureDetailJSONDataSourceImpl` does no I/O when it is created and decodes the bundled catalogue in a `@concurrent` function, off the main actor, each time a detail is requested. It keeps no cache.
 
-**Consequence:** the current small file is acceptable for a reference, but the pattern would put larger file I/O and decoding on the caller's isolation context.
+**Consequence:** every detail screen reads and decodes the whole file. That is negligible for 19 entries but would grow with the catalogue.
 
-**Follow-up question:** introduce an explicitly isolated async loader only if data size or measured launch/navigation work warrants it.
+**Follow-up question:** cache decoded DTOs in an explicitly isolated store only if measurements show the cost matters.
 
 ### Duplicate catalogue paths
 
@@ -100,7 +92,7 @@ Staging and Production xcconfig files and schemes are illustrative. Their endpoi
 
 The project contains a nominal `ArquitecturaUITests` target, but no UI-test source directory is checked in and the shared test plan executes only `ArquitecturaTests`.
 
-**Consequence:** 194 Swift Testing cases are unit/integration-style evidence, not proof of end-to-end UI behavior, accessibility, or screenshot stability.
+**Consequence:** 226 Swift Testing cases are unit/integration-style evidence, not proof of end-to-end UI behavior, accessibility, or screenshot stability.
 
 ### External runtime dependency
 
@@ -116,14 +108,13 @@ The sample contains SSL-pinning infrastructure, interceptors, Keychain helpers, 
 
 ## Structural review backlog
 
-The separate follow-up task should evaluate, in this order:
+The 2026-11-03 snapshot resolved the earlier items on Repository contract placement, transport-to-domain error mapping, scene-owned navigation with ordered deep links, and synchronous JSON work; see the [changelog](../CHANGELOG.md). The separate follow-up task should evaluate, in this order:
 
-1. actor/isolation boundaries and synchronous JSON work;
-2. scene-owned navigation, deep-link ordering, and route restoration compatibility;
-3. effective xcconfig values and the empty UI-test target;
-4. Repository contract placement and transport-to-domain error mapping;
-5. cross-feature navigation ownership and duplicate catalogue sources;
-6. module boundaries only if measurable ownership or build constraints justify them.
+1. effective xcconfig values and the empty UI-test target;
+2. route restoration compatibility and UI coverage for multiwindow and cold-launch deep links;
+3. cross-feature navigation ownership and duplicate catalogue sources;
+4. the presentation error type in Core;
+5. module boundaries only if measurable ownership or build constraints justify them.
 
 No item above authorizes a refactor by itself. Each change should have tests, migration impact, and an ADR when it alters an architectural contract.
 
@@ -135,8 +126,8 @@ No item above authorizes a refactor by itself. Each change should have tests, mi
 | --- | --- |
 | Author / Owner | magnoscg / OgamLabs |
 | Created | 2026-08-04 |
-| Last Updated | 2026-08-04 |
-| Last Verified | 2026-08-04 |
+| Last Updated | 2026-11-03 |
+| Last Verified | 2026-11-03 |
 | Status | Accepted limitations for v2 publication |
 | Review Schedule | Quarterly and before structural refactors |
 | Labels | `ios`, `architecture`, `technical-debt`, `limitations` |

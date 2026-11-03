@@ -136,7 +136,7 @@ private struct PreviewArchitectureUseCase: ArchitectureUseCase {
                            systemIcon: nil),
          ArchitectureModel(id: "router-pattern",
                            name: "Typed Router Pattern",
-                           description: "Feature route enums delegate to an app-level NavigationPath router",
+                           description: "Feature route enums delegate to a per-window NavigationPath router",
                            category: .architecture,
                            isImplemented: true,
                            systemIcon: nil),
