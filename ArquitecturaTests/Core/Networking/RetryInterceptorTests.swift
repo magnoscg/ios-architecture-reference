@@ -165,14 +165,16 @@ struct RetryInterceptorTests {
     // MARK: - Helpers
 
     private func makeRequest(method: String) throws -> URLRequest {
-        var request = URLRequest(url: try #require(URL(string: "https://example.com/orders")))
+        var request = try URLRequest(url: #require(URL(string: "https://example.com/orders")))
         request.httpMethod = method
         return request
     }
 
-    nonisolated private static func makeResponse(for request: URLRequest, statusCode: Int) throws -> (Data, HTTPURLResponse) {
+    nonisolated private static func makeResponse(for request: URLRequest,
+                                                 statusCode: Int) throws -> (Data, HTTPURLResponse) {
         let url = try #require(request.url)
-        let response = try #require(HTTPURLResponse(url: url, statusCode: statusCode, httpVersion: nil, headerFields: nil))
+        let httpResponse = HTTPURLResponse(url: url, statusCode: statusCode, httpVersion: nil, headerFields: nil)
+        let response = try #require(httpResponse)
         return (Data(), response)
     }
 }

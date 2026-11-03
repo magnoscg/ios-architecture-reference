@@ -97,7 +97,8 @@ The second import applied the source diff between the previous and the current c
 
 - kept the curated catalogue and updated the entries whose facts changed (layers, routing, composition, organization, typed errors, error mapping, and the PokeAPI example) together with their mirrored short descriptions;
 - kept the public test that checks the 19 bundled catalogue entries, adapted to the new asynchronous Data Source;
-- applied the public `nonisolated private` modifier order to new code.
+- applied the public `nonisolated private` modifier order to new code;
+- made mechanical SwiftFormat corrections required by the public 120-column configuration: realigned arguments after the `PokemonSummaryModel` rename, hoisted one `try`, and wrapped or split long test lines.
 
 Every other exported file under the allowlist is identical to the source commit or differs only by the sanitization listed above.
 

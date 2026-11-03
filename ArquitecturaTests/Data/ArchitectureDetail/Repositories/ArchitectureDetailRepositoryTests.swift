@@ -28,7 +28,8 @@ struct ArchitectureDetailRepositoryTests {
             .appending(path: "invalid-catalogue-\(UUID().uuidString).json")
         try Data("not valid json".utf8).write(to: fileURL)
         defer { try? FileManager.default.removeItem(at: fileURL) }
-        let repository = ArchitectureDetailRepositoryImpl(dataSource: ArchitectureDetailJSONDataSourceImpl(fileURL: fileURL),
+        let dataSource = ArchitectureDetailJSONDataSourceImpl(fileURL: fileURL)
+        let repository = ArchitectureDetailRepositoryImpl(dataSource: dataSource,
                                                           mapper: ArchitectureDetailDTOMapperImpl())
 
         do {
@@ -41,7 +42,8 @@ struct ArchitectureDetailRepositoryTests {
 
     @Test("getFeatureDetail throws DomainError.unknown when the catalogue file is missing")
     func missingCatalogueThrowsDomainError() async {
-        let repository = ArchitectureDetailRepositoryImpl(dataSource: ArchitectureDetailJSONDataSourceImpl(fileURL: nil),
+        let dataSource = ArchitectureDetailJSONDataSourceImpl(fileURL: nil)
+        let repository = ArchitectureDetailRepositoryImpl(dataSource: dataSource,
                                                           mapper: ArchitectureDetailDTOMapperImpl())
 
         do {
