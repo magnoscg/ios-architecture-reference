@@ -4,15 +4,16 @@
 
 ## Provenance record
 
-Version 2 is derived from a fixed, first-party snapshot of the private architecture workspace owned by Oscar Canton. Only the reference application's `Example` subtree was exported; the source repository itself, its history, and unrelated tooling remain private.
+Version 2 is derived from fixed, first-party snapshots of the private architecture workspace owned by Oscar Canton. Only the reference application's `Example` subtree was exported; the source repository itself, its history, and unrelated tooling remain private.
 
 | Field | Verified value |
 | --- | --- |
-| Source commit | `81f37c52f7a385247999ad30cc0d5a913f57192b` |
-| Source subtree OID | `e8f1f27bd38de15e1279ce58c96726c2595d6869` |
+| Source commit | `c046aee55f3fd25ff8508014660a06fe44b0fb41` |
+| Source subtree OID | `81a6fdeb88d4e7fe90dc43813bf4b2576680ddc9` |
 | Source subtree | `Example` |
-| Tracked source files before sanitization | 210 |
-| Snapshot verified | 2026-08-04 |
+| Tracked source files before sanitization | 217 |
+| Snapshot verified | 2026-11-03 |
+| Previous import | `81f37c52f7a385247999ad30cc0d5a913f57192b` (subtree `e8f1f27bd38de15e1279ce58c96726c2595d6869`, 210 files, 2026-08-04) |
 | Public owner | magnoscg / OgamLabs |
 
 Commit and tree identifiers are reproducibility metadata, not credentials. This document intentionally omits the private remote URL and every local filesystem path.
@@ -22,7 +23,7 @@ Commit and tree identifiers are reproducibility metadata, not credentials. This 
 The import is based on the immutable source commit, not on a potentially dirty working directory. Its equivalent Git operation is:
 
 ```bash
-git archive 81f37c52f7a385247999ad30cc0d5a913f57192b:Example
+git archive c046aee55f3fd25ff8508014660a06fe44b0fb41:Example
 ```
 
 The exported subtree is promoted to the root of this public repository so `Arquitectura.xcodeproj`, `Arquitectura`, and `ArquitecturaTests` preserve their working relative paths. The private repository history is not merged, rewritten, or copied.
@@ -90,6 +91,16 @@ The following review-only changes distinguish the public v2 tree from the source
 
 These changes do not introduce new architecture modules, persistence, UI tests, product code, or production configuration.
 
+### Re-import of 2026-11-03
+
+The second import applied the source diff between the previous and the current commit to the public tree instead of exporting the subtree again, so the sanitization above stays in place. In addition, it:
+
+- kept the curated catalogue and updated the entries whose facts changed (layers, routing, composition, organization, typed errors, error mapping, and the PokeAPI example) together with their mirrored short descriptions;
+- kept the public test that checks the 19 bundled catalogue entries, adapted to the new asynchronous Data Source;
+- applied the public `nonisolated private` modifier order to new code.
+
+Every other exported file under the allowlist is identical to the source commit or differs only by the sanitization listed above.
+
 ## Verification rules
 
 `make validate` is responsible for checking the current public tree, including:
@@ -115,8 +126,8 @@ Oscar Canton publishes the source present in this public repository under its [M
 | --- | --- |
 | Author / Owner | magnoscg / OgamLabs |
 | Created | 2026-08-04 |
-| Last Updated | 2026-08-04 |
-| Last Verified | 2026-08-04 |
+| Last Updated | 2026-11-03 |
+| Last Verified | 2026-11-03 |
 | Status | Verified source-boundary record |
 | Review Schedule | On every source re-import |
 | Labels | `provenance`, `supply-chain`, `ios`, `public-boundary` |
