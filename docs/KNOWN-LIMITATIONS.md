@@ -92,7 +92,7 @@ Staging and Production xcconfig files and schemes are illustrative. Their endpoi
 
 The project contains a nominal `ArquitecturaUITests` target, but no UI-test source directory is checked in and the shared test plan executes only `ArquitecturaTests`.
 
-**Consequence:** 226 Swift Testing cases are unit/integration-style evidence, not proof of end-to-end UI behavior, accessibility, or screenshot stability.
+**Consequence:** 253 Swift Testing cases are unit/integration-style evidence, not proof of end-to-end UI behavior, accessibility, or screenshot stability.
 
 ### External runtime dependency
 

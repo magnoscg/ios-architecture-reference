@@ -144,7 +144,8 @@ El proyecto usa modo de lenguaje Swift 6 y `SWIFT_DEFAULT_ACTOR_ISOLATION = Main
 - `APIClientImpl` utiliza `@unchecked Sendable`; su argumento de seguridad depende de colaboradores almacenados inmutables y un decoder nuevo por request.
 - El listado Pokémon usa `withThrowingTaskGroup`; el detalle usa `async let`.
 - La cancelación se trata aparte de los fallos de dominio en `APIClientImpl`, el interceptor de reintentos, los repositorios y los ViewModels. `APIClientImpl` convierte `URLError.cancelled` en `CancellationError` solo si la tarea se canceló, así que un challenge de pinning rechazado sigue siendo un error de red.
-- El interceptor de reintentos solo reenvía métodos idempotentes o peticiones con la cabecera `Idempotency-Key`.
+- El interceptor de reintentos solo reenvía métodos idempotentes o peticiones con la cabecera `Idempotency-Key`. No reintenta errores que describen el estado del dispositivo, como estar sin conexión, respeta `Retry-After` hasta el `maxDelay` de la política y se detiene al agotar su presupuesto total de tiempo.
+- `APIClientImpl` solo invalida una `URLSession` que haya creado. Con el pinning activado solo se fija el host de la API, y los pins ausentes o mal formados rechazan las conexiones a la API en lugar de desactivar el pinning en silencio.
 
 El aislamiento MainActor por defecto significa que el nombre de una carpeta no implica ejecución en background. El trabajo que debe salir del main actor se marca explícitamente: la Data Source de JSON decodifica en una función `@concurrent` y los mappers de DTO son `nonisolated` para poder ejecutarse dentro de las tareas hijas de un task group.
 
