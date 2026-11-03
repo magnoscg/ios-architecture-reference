@@ -8,7 +8,7 @@
 [![Swift 6](https://img.shields.io/badge/Swift-6.0-F05138?style=flat-square&logo=swift&logoColor=white)](Arquitectura.xcodeproj/project.pbxproj)
 [![iOS 18+](https://img.shields.io/badge/iOS-18%2B-000000?style=flat-square&logo=apple&logoColor=white)](Arquitectura.xcodeproj/project.pbxproj)
 [![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-0A84FF?style=flat-square&logo=swift&logoColor=white)](Arquitectura/Features)
-[![Swift Testing](https://img.shields.io/badge/Swift_Testing-226_tests-34C759?style=flat-square)](ArquitecturaTests)
+[![Swift Testing](https://img.shields.io/badge/Swift_Testing-253_tests-34C759?style=flat-square)](ArquitecturaTests)
 [![CI](https://img.shields.io/github/actions/workflow/status/magnoscg/ios-architecture-reference/ci.yml?branch=main&style=flat-square&label=CI&logo=githubactions&logoColor=white)](https://github.com/magnoscg/ios-architecture-reference/actions/workflows/ci.yml)
 [![Dependencias](https://img.shields.io/badge/dependencias-0-34C759?style=flat-square)](Arquitectura.xcodeproj/project.pbxproj)
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-0066CC?style=flat-square)](LICENSE.md)
@@ -53,9 +53,9 @@ Modo de lenguaje Swift 6, ViewModels `@MainActor`, task groups, `async let` y un
 </td>
 <td width="33%" valign="top">
 
-**🧪 226 tests**
+**🧪 253 tests**
 
-30 suites de Swift Testing que replican el árbol de código: mappers, repositorios, casos de uso, ViewModels y navegación.
+33 suites de Swift Testing que replican el árbol de código: mappers, repositorios, casos de uso, ViewModels y navegación.
 
 </td>
 <td width="33%" valign="top">
@@ -338,7 +338,7 @@ func loadPokemon() async {
 
 ## 🧪 Tests
 
-**226 tests en 30 suites**, escritos con Swift Testing y organizados igual que la app (`App`, `Core`, `Domain`, `Data`, `Features`). Cada colaborador vive detrás de un protocolo, así que cada capa se prueba de forma aislada con mocks ligeros:
+**253 tests en 33 suites**, escritos con Swift Testing y organizados igual que la app (`App`, `Core`, `Domain`, `Data`, `Features`). Cada colaborador vive detrás de un protocolo, así que cada capa se prueba de forma aislada con mocks ligeros:
 
 ```swift
 @Test("loadPokemon restores previous state on CancellationError")

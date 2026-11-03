@@ -8,12 +8,12 @@ Version 2 is derived from fixed, first-party snapshots of the private architectu
 
 | Field | Verified value |
 | --- | --- |
-| Source commit | `c046aee55f3fd25ff8508014660a06fe44b0fb41` |
-| Source subtree OID | `81a6fdeb88d4e7fe90dc43813bf4b2576680ddc9` |
+| Source commit | `51c05fe810f8d842d25e93701c456501bdac4066` |
+| Source subtree OID | `4e44e99f8eb398653a97bf600822afb4bb7c13b3` |
 | Source subtree | `Example` |
-| Tracked source files before sanitization | 217 |
+| Tracked source files before sanitization | 220 |
 | Snapshot verified | 2026-11-03 |
-| Previous import | `81f37c52f7a385247999ad30cc0d5a913f57192b` (subtree `e8f1f27bd38de15e1279ce58c96726c2595d6869`, 210 files, 2026-08-04) |
+| Previous imports | `c046aee55f3fd25ff8508014660a06fe44b0fb41` (subtree `81a6fdeb88d4e7fe90dc43813bf4b2576680ddc9`, 217 files, 2026-11-03); `81f37c52f7a385247999ad30cc0d5a913f57192b` (subtree `e8f1f27bd38de15e1279ce58c96726c2595d6869`, 210 files, 2026-08-04) |
 | Public owner | magnoscg / OgamLabs |
 
 Commit and tree identifiers are reproducibility metadata, not credentials. This document intentionally omits the private remote URL and every local filesystem path.
@@ -23,7 +23,7 @@ Commit and tree identifiers are reproducibility metadata, not credentials. This 
 The import is based on the immutable source commit, not on a potentially dirty working directory. Its equivalent Git operation is:
 
 ```bash
-git archive c046aee55f3fd25ff8508014660a06fe44b0fb41:Example
+git archive 51c05fe810f8d842d25e93701c456501bdac4066:Example
 ```
 
 The exported subtree is promoted to the root of this public repository so `Arquitectura.xcodeproj`, `Arquitectura`, and `ArquitecturaTests` preserve their working relative paths. The private repository history is not merged, rewritten, or copied.
@@ -99,6 +99,16 @@ The second import applied the source diff between the previous and the current c
 - kept the public test that checks the 19 bundled catalogue entries, adapted to the new asynchronous Data Source;
 - applied the public `nonisolated private` modifier order to new code;
 - made mechanical SwiftFormat corrections required by the public 120-column configuration: realigned arguments after the `PokemonSummaryModel` rename, hoisted one `try`, and wrapped or split long test lines.
+
+### Networking update of 2026-11-03
+
+The networking changes between `c046aee55f3fd25ff8508014660a06fe44b0fb41` and `51c05fe810f8d842d25e93701c456501bdac4066` were applied the same way, as a source diff, to 12 files under `Arquitectura/Core/Networking`, `ArquitecturaTests/Core/Networking` and `Production.xcconfig`, which keeps its placeholder pin. In addition, the import:
+
+- applied the public `nonisolated private` modifier order to three new declarations;
+- reapplied the existing public wrapping to the `makeResponse` test helper, which gained a `headerFields` parameter, and wrapped its return type the way SwiftFormat already wraps `RetryInterceptor.intercept`;
+- moved one long test pin into a local constant to stay within 120 columns;
+- split the elliptic-curve algorithm table in `SSLPinningDelegate` into one named constant per curve, so SwiftFormat's collection wrapping holds within 120 columns; the encoded bytes are unchanged;
+- updated the typed-error and SSL-pinning catalogue entries, the architecture documents, and the stated test totals.
 
 Every other exported file under the allowlist is identical to the source commit or differs only by the sanitization listed above.
 

@@ -144,7 +144,8 @@ The project uses Swift 6 language mode and `SWIFT_DEFAULT_ACTOR_ISOLATION = Main
 - `APIClientImpl` uses `@unchecked Sendable`; its documented safety argument depends on immutable stored collaborators and a fresh decoder per request.
 - The Pokémon list uses `withThrowingTaskGroup`; the detail flow uses `async let`.
 - Cancellation is handled separately from domain failure in `APIClientImpl`, the retry interceptor, repositories, and ViewModels. `APIClientImpl` turns `URLError.cancelled` into `CancellationError` only when the task was cancelled, so a rejected pinning challenge stays a network error.
-- The retry interceptor only resends idempotent methods or requests that carry an `Idempotency-Key` header.
+- The retry interceptor only resends idempotent methods or requests that carry an `Idempotency-Key` header. It does not retry errors that describe the device state, such as being offline, honors `Retry-After` up to the policy's `maxDelay`, and stops once the policy's total time budget is spent.
+- `APIClientImpl` invalidates only a `URLSession` it created. With pinning enabled, only the API host is pinned, and missing or malformed pins reject API connections instead of silently disabling pinning.
 
 Default MainActor isolation means folder names do not imply background execution. Work that must leave the main actor is marked explicitly: the bundled JSON Data Source decodes in a `@concurrent` function, and DTO mappers are `nonisolated` so they can run inside task-group children.
 

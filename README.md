@@ -8,7 +8,7 @@
 [![Swift 6](https://img.shields.io/badge/Swift-6.0-F05138?style=flat-square&logo=swift&logoColor=white)](Arquitectura.xcodeproj/project.pbxproj)
 [![iOS 18+](https://img.shields.io/badge/iOS-18%2B-000000?style=flat-square&logo=apple&logoColor=white)](Arquitectura.xcodeproj/project.pbxproj)
 [![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-0A84FF?style=flat-square&logo=swift&logoColor=white)](Arquitectura/Features)
-[![Swift Testing](https://img.shields.io/badge/Swift_Testing-226_tests-34C759?style=flat-square)](ArquitecturaTests)
+[![Swift Testing](https://img.shields.io/badge/Swift_Testing-253_tests-34C759?style=flat-square)](ArquitecturaTests)
 [![CI](https://img.shields.io/github/actions/workflow/status/magnoscg/ios-architecture-reference/ci.yml?branch=main&style=flat-square&label=CI&logo=githubactions&logoColor=white)](https://github.com/magnoscg/ios-architecture-reference/actions/workflows/ci.yml)
 [![Dependencies](https://img.shields.io/badge/dependencies-0-34C759?style=flat-square)](Arquitectura.xcodeproj/project.pbxproj)
 [![License: MIT](https://img.shields.io/badge/license-MIT-0066CC?style=flat-square)](LICENSE.md)
@@ -53,7 +53,7 @@ Swift 6 language mode, `@MainActor` ViewModels, task groups, `async let`, and ca
 </td>
 <td width="33%" valign="top">
 
-**🧪 226 tests**
+**🧪 253 tests**
 
 30 Swift Testing suites mirror the source tree: mappers, repositories, use cases, ViewModels and navigation.
 
@@ -338,7 +338,7 @@ func loadPokemon() async {
 
 ## 🧪 Testing
 
-**226 tests in 30 suites**, written with Swift Testing and organised like the app itself (`App`, `Core`, `Domain`, `Data`, `Features`). Every collaborator sits behind a protocol, so each layer is tested in isolation with lightweight mocks:
+**253 tests in 33 suites**, written with Swift Testing and organised like the app itself (`App`, `Core`, `Domain`, `Data`, `Features`). Every collaborator sits behind a protocol, so each layer is tested in isolation with lightweight mocks:
 
 ```swift
 @Test("loadPokemon restores previous state on CancellationError")

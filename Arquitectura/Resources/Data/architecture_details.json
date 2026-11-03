@@ -369,7 +369,7 @@
         { "name": "APIErrorResponse.swift", "icon": "doc.text.fill" },
         { "name": "RetryPolicy.swift", "icon": "arrow.clockwise" }
       ],
-      "implementationDetails": "APIError preserves transport, HTTP status and body data, decoding, invalid URL, and wrapped unknown failures. Its retryability policy treats transient URL errors, HTTP 5xx, and 429 as retry candidates, and RetryInterceptor only resends idempotent methods or requests that carry an Idempotency-Key.",
+      "implementationDetails": "APIError preserves transport, HTTP status and body data, decoding, invalid URL, and wrapped unknown failures. Its retryability policy treats transient URL errors, HTTP 5xx, and 429 as retry candidates, but not errors that describe the device state, such as being offline. RetryInterceptor only resends idempotent methods or requests that carry an Idempotency-Key, honors Retry-After up to the policy's maxDelay, and stops once the policy's total time budget is spent.",
       "codeExample": {
         "language": "swift",
         "code": "nonisolated enum APIError: Error {\n    case networkError(URLError)\n    case httpError(statusCode: Int, data: Data?)\n    case decodingError(DecodingError)\n    case invalidURL\n    case unknown(SendableError)\n}"
@@ -459,16 +459,16 @@
         { "name": "URLSessionFactory.swift", "icon": "network.badge.shield.half.filled" },
         { "name": "EnvironmentConfiguration.swift", "icon": "gearshape.fill" }
       ],
-      "implementationDetails": "SSLPinningDelegate validates server trust and compares the leaf certificate public-key SHA-256 hash with configured hashes. URLSessionFactory installs the delegate only when pinning is enabled and at least one hash exists. Development disables pinning; staging and production values are templates until replaced with real service configuration.",
+      "implementationDetails": "SSLPinningDelegate evaluates server trust for the API host and accepts it when the SHA-256 of a certificate's SubjectPublicKeyInfo in the chain, the value the openssl command in Production.xcconfig computes, matches a configured sha256/ pin. URLSessionFactory installs the delegate whenever pinning is enabled; missing or malformed pins reject API connections instead of silently disabling pinning. Development disables pinning; staging and production values are templates until replaced with real service configuration.",
       "codeExample": {
         "language": "swift",
-        "code": "if configuration.sslPinningEnabled, !configuration.sslPublicKeyHashes.isEmpty {\n    let delegate = SSLPinningDelegate(publicKeyHashes: configuration.sslPublicKeyHashes,\n                                      isEnabled: true)\n    return URLSession(configuration: sessionConfig,\n                      delegate: delegate,\n                      delegateQueue: nil)\n}"
+        "code": "guard configuration.sslPinningEnabled else {\n    return URLSession(configuration: sessionConfiguration)\n}\nlet delegate = SSLPinningDelegate(publicKeyHashes: configuration.sslPublicKeyHashes,\n                                  pinnedHosts: Set([configuration.baseURL.host()].compactMap(\\.self)))\nreturn URLSession(configuration: sessionConfiguration, delegate: delegate, delegateQueue: nil)"
       },
       "bestPractices": [
         {
           "id": "config-consistency",
           "title": "Configuration consistency",
-          "description": "Debug builds assert when pinning is enabled without any configured hashes."
+          "description": "Debug builds assert, and a fault is logged, when pinning is enabled without valid sha256/ pins; connections then fail closed."
         },
         {
           "id": "template-boundary",

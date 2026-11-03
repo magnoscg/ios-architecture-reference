@@ -92,7 +92,7 @@ Los xcconfig y schemes de Staging/Production son ilustrativos. Sus endpoints son
 
 El proyecto contiene un target nominal `ArquitecturaUITests`, pero no hay directorio de fuentes y el test plan compartido ejecuta solo `ArquitecturaTests`.
 
-**Consecuencia:** los 226 casos Swift Testing son evidencia unitaria/de integración, no prueba end-to-end de UI, accesibilidad o estabilidad visual.
+**Consecuencia:** los 253 casos Swift Testing son evidencia unitaria/de integración, no prueba end-to-end de UI, accesibilidad o estabilidad visual.
 
 ### Dependencia externa en runtime
 
