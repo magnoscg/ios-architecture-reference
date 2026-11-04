@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented here. The repository uses semantic version tags without a `v` prefix.
 
-## Unreleased
+## [2.1.0] - 2026-11-04
 
 ### Changed
 
@@ -79,6 +79,7 @@ All notable changes to this project are documented here. The repository uses sem
 - Fifteen Swift Testing checks across domain, mapping, networking, and UI state.
 - Bilingual recruiter narrative, architecture decision records, security documentation, and first-party OgamLabs presentation assets.
 
+[2.1.0]: https://github.com/magnoscg/ios-architecture-reference/releases/tag/2.1.0
 [2.0.1]: https://github.com/magnoscg/ios-architecture-reference/releases/tag/2.0.1
 [2.0.0]: https://github.com/magnoscg/ios-architecture-reference/releases/tag/2.0.0
 [1.0.0]: https://github.com/magnoscg/ios-architecture-reference/tree/1.0.0
@@ -90,6 +91,6 @@ All notable changes to this project are documented here. The repository uses sem
 | Field | Value |
 | --- | --- |
 | Author / Owner | magnoscg / OgamLabs |
-| Last Updated / Verified | 2026-10-31 |
+| Last Updated / Verified | 2026-11-04 |
 | Review Schedule | Every release |
 | Labels | `changelog`, `release`, `semver` |

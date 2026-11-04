@@ -438,8 +438,9 @@ docs/                          architecture decisions and guides
 | **January 2026** | Work starts in my private architecture workspace: conventions, documentation and this reference app |
 | **March 2026** | The app becomes the example project of [AnvilCLI](https://github.com/magnoscg/anvil), my Go CLI that scaffolds iOS projects with this architecture |
 | **August 2026** | Published here as a clean public snapshot, release `2.0.0` |
+| **November 2026** | Domain and Data organized by concept, per-window navigation and hardened networking, release `2.1.0` |
 
-The private history was not carried over, which is why every commit in this repository is dated August 2026. [Source provenance](docs/SOURCE-PROVENANCE.md) records the exact snapshot it came from.
+The private history was not carried over, which is why this repository starts in August 2026. [Source provenance](docs/SOURCE-PROVENANCE.md) records the exact snapshot it came from.
 
 ## 👋 About me
 
