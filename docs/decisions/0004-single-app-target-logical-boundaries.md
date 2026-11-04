@@ -45,6 +45,10 @@ The decision is reversible with medium cost because creating modules requires ac
 
 The decision succeeds while a reviewer can trace complete flows, public CI builds/tests the app from a clean checkout, and documentation makes no compile-time enforcement claim.
 
+## Amendment — 2026-11-03
+
+Repository protocols moved to `Domain/<Concept>/Repositories`, and transport-to-domain error mapping moved to `Data/Common`, so Domain no longer references Data or networking types. The single application target is unchanged: that direction is still protected by review and tests rather than by the compiler.
+
 ---
 
 **Document Metadata**
@@ -53,6 +57,7 @@ The decision succeeds while a reviewer can trace complete flows, public CI build
 | --- | --- |
 | Author / Owner | magnoscg / OgamLabs |
 | Created / Verified | 2026-08-04 |
+| Amended | 2026-11-03 |
 | Status | Accepted |
 | Review Schedule | When ownership or build constraints change |
 | Labels | `adr`, `xcode`, `single-target`, `architecture` |

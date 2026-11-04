@@ -12,10 +12,10 @@
         { "name": "ArchitectureRepository.swift", "icon": "cylinder.split.1x2.fill" },
         { "name": "ArchitectureUseCaseImpl.swift", "icon": "gearshape.fill" }
       ],
-      "implementationDetails": "The app uses logical Domain, Data, and feature-presentation layers inside one application target. Use cases depend on repository protocols and map failures before presentation. Folder boundaries are conventions rather than compile-time module boundaries; repository protocols currently live under Data.",
+      "implementationDetails": "The app uses logical Domain, Data, and feature-presentation layers inside one application target. Domain owns models, use cases, and repository protocols; Data implements those protocols and translates infrastructure failures into DomainError. Folder boundaries are conventions rather than compile-time module boundaries.",
       "codeExample": {
         "language": "swift",
-        "code": "struct ArchitectureUseCaseImpl: ArchitectureUseCase {\n    private let repository: ArchitectureRepository\n\n    func execute() async throws -> [ArchitectureModel] {\n        do {\n            let features = try await repository.getFeatures()\n            return features.sorted { $0.category.rawValue < $1.category.rawValue }\n        } catch is CancellationError {\n            throw CancellationError()\n        } catch {\n            throw DomainError.map(error)\n        }\n    }\n}"
+        "code": "struct ArchitectureUseCaseImpl: ArchitectureUseCase {\n    private let repository: ArchitectureRepository\n\n    func execute() async throws -> [ArchitectureModel] {\n        let features = try await repository.getFeatures()\n        return features.sorted { $0.category.rawValue < $1.category.rawValue }\n    }\n}"
       },
       "bestPractices": [
         {
@@ -26,7 +26,7 @@
         {
           "id": "domain-models",
           "title": "Domain models",
-          "description": "Networking DTOs are mapped before the presentation layer consumes feature data."
+          "description": "Networking DTOs are mapped to domain models in Data, and the repository contracts that return them are owned by Domain."
         }
       ]
     },
@@ -72,7 +72,7 @@
         { "name": "ArchitectureRouter.swift", "icon": "arrow.right.circle.fill" },
         { "name": "ArchitectureRouteResolver.swift", "icon": "map.fill" }
       ],
-      "implementationDetails": "Each feature defines Codable, Hashable route values and a small router protocol. Concrete feature routers push those values into the app-level NavigationPath; route resolvers build destinations.",
+      "implementationDetails": "Each feature defines Codable, Hashable route values and a small router protocol. Concrete feature routers push those values through AppRouter, which only offers push, pop, and popToRoot over the window's NavigationPath; route resolvers build destinations.",
       "codeExample": {
         "language": "swift",
         "code": "enum ArchitectureRoute: Hashable, Codable {\n    case detail(featureId: String)\n}\n\n@MainActor\nstruct ArchitectureRouterImpl: ArchitectureRouter {\n    private let appRouter: AppRouter\n\n    func navigateToDetail(featureId: String) {\n        appRouter.push(ArchitectureRoute.detail(featureId: featureId))\n    }\n}"
@@ -98,11 +98,11 @@
       "subtitle": "Composition & Lifetimes",
       "isImplemented": true,
       "filesInvolved": [
-        { "name": "ArquitecturaApp.swift", "icon": "app.fill" },
+        { "name": "AppRootView.swift", "icon": "app.fill" },
         { "name": "AppDependencies.swift", "icon": "shippingbox.fill" },
         { "name": "ArchitectureFactory.swift", "icon": "hammer.fill" }
       ],
-      "implementationDetails": "ArquitecturaApp is the application composition root: it creates the app-lifetime AppDependencies and AppRouterImpl. Feature factories are screen-scoped sub-composition-roots that assemble data sources, repositories, use cases, mappers, routers, view models, and views.",
+      "implementationDetails": "ArquitecturaApp is the application composition root: it creates the app-lifetime AppDependencies and launch state. Each window's AppRootView owns its AppRouterImpl and AppNavigationCoordinator. Feature factories are screen-scoped sub-composition-roots that assemble data sources, repositories, use cases, mappers, routers, view models, and views.",
       "codeExample": {
         "language": "swift",
         "code": "@MainActor\nenum ArchitectureFactory {\n    static func makeView(appRouter: AppRouter) -> ArchitectureView {\n        let viewModel = makeViewModel(appRouter: appRouter)\n        return ArchitectureView(viewModel: viewModel)\n    }\n}"
@@ -111,7 +111,7 @@
         {
           "id": "app-lifetime",
           "title": "App lifetime",
-          "description": "The API client and app router are created once at the application boundary."
+          "description": "The API client is created once at the application boundary; each window creates its own app router, so iPad windows navigate and restore independently."
         },
         {
           "id": "screen-lifetime",
@@ -128,17 +128,17 @@
       "subtitle": "Project Structure",
       "isImplemented": true,
       "filesInvolved": [
-        { "name": "Domain/Architecture", "icon": "folder.fill" },
-        { "name": "Data/Architecture", "icon": "folder.fill" },
-        { "name": "Features/Architecture", "icon": "folder.fill" }
+        { "name": "Domain/Pokemon", "icon": "folder.fill" },
+        { "name": "Data/Pokemon", "icon": "folder.fill" },
+        { "name": "Features/PokemonList", "icon": "folder.fill" }
       ],
-      "implementationDetails": "The repository uses a hybrid organization. Domain and Data are top-level layers subdivided by feature. Features groups presentation concerns vertically into DI, Navigation, Presentation, and UI. It is not a full vertical-slice layout.",
+      "implementationDetails": "The repository uses a hybrid organization. Domain and Data are top-level layers organized by domain concept, so Domain/Pokemon serves both the Pokemon list and detail screens. Features is organized per screen and groups presentation concerns into DI, Navigation, Presentation, and UI. It is not a full vertical-slice layout.",
       "codeExample": null,
       "bestPractices": [
         {
-          "id": "matching-feature-names",
-          "title": "Matching feature names",
-          "description": "Architecture, ArchitectureDetail, PokemonList, and PokemonDetail use matching names across their layers."
+          "id": "concept-and-screen-names",
+          "title": "Concepts and screens",
+          "description": "Domain and Data folders name concepts such as Architecture, ArchitectureDetail, and Pokemon; Features folders name screens such as PokemonList and PokemonDetail."
         },
         {
           "id": "presentation-grouping",
@@ -369,7 +369,7 @@
         { "name": "APIErrorResponse.swift", "icon": "doc.text.fill" },
         { "name": "RetryPolicy.swift", "icon": "arrow.clockwise" }
       ],
-      "implementationDetails": "APIError preserves transport, HTTP status and body data, decoding, invalid URL, and wrapped unknown failures. Its retryability policy treats transient URL errors, HTTP 5xx, and 429 as retry candidates.",
+      "implementationDetails": "APIError preserves transport, HTTP status and body data, decoding, invalid URL, and wrapped unknown failures. Its retryability policy treats transient URL errors, HTTP 5xx, and 429 as retry candidates, but not errors that describe the device state, such as being offline. RetryInterceptor only resends idempotent methods or requests that carry an Idempotency-Key, honors Retry-After up to the policy's maxDelay, and stops once the policy's total time budget is spent.",
       "codeExample": {
         "language": "swift",
         "code": "nonisolated enum APIError: Error {\n    case networkError(URLError)\n    case httpError(statusCode: Int, data: Data?)\n    case decodingError(DecodingError)\n    case invalidURL\n    case unknown(SendableError)\n}"
@@ -383,7 +383,7 @@
         {
           "id": "cancellation",
           "title": "Cancellation",
-          "description": "Cancelled URL requests become CancellationError instead of a user-facing network failure."
+          "description": "A cancelled URL request becomes CancellationError only when its task was cancelled, so a rejected pinning challenge still surfaces as a network failure."
         }
       ]
     },
@@ -396,19 +396,19 @@
       "isImplemented": true,
       "filesInvolved": [
         { "name": "DomainError+Mapping.swift", "icon": "arrow.triangle.2.circlepath" },
-        { "name": "PokemonListUseCaseImpl.swift", "icon": "gearshape.fill" },
+        { "name": "PokemonListRepositoryImpl.swift", "icon": "cylinder.split.1x2.fill" },
         { "name": "ErrorDecorator.swift", "icon": "rectangle.and.pencil.and.ellipsis" }
       ],
-      "implementationDetails": "Repositories surface their data-layer failures. Use cases convert them with DomainError.map, and view models convert DomainError into localized ErrorDecorator values. This is the implemented mapping location; repositories do not perform the domain mapping.",
+      "implementationDetails": "Data sources throw APIError or their own errors. Each repository implementation wraps its work in DomainError.catching, which keeps cancellation as CancellationError and maps every other failure to DomainError, so Domain never sees infrastructure errors. Use cases let DomainError through, and view models convert it into localized ErrorDecorator values.",
       "codeExample": {
         "language": "swift",
-        "code": "static func map(_ error: Error) -> DomainError {\n    if let domainError = error as? DomainError {\n        return domainError\n    }\n\n    if let apiError = error as? APIError {\n        return mapAPIError(apiError)\n    }\n\n    return .unknown\n}"
+        "code": "static func catching<T>(isolation: isolated (any Actor)? = #isolation,\n                        _ operation: () async throws -> T) async throws -> T {\n    do {\n        return try await operation()\n    } catch is CancellationError {\n        throw CancellationError()\n    } catch where Task.isCancelled {\n        throw CancellationError()\n    } catch {\n        throw map(error)\n    }\n}"
       },
       "bestPractices": [
         {
-          "id": "usecase-boundary",
-          "title": "Use-case boundary",
-          "description": "Use cases are the point where data errors become feature-facing domain errors."
+          "id": "repository-boundary",
+          "title": "Repository boundary",
+          "description": "Repository implementations in Data are the point where infrastructure errors become domain errors; Domain has no knowledge of APIError."
         },
         {
           "id": "localized-presentation",
@@ -443,7 +443,7 @@
         {
           "id": "partial-detail-failure",
           "title": "Partial detail failure",
-          "description": "A failed item-detail request is logged and omitted without discarding successful list items."
+          "description": "A failed item-detail request is logged and omitted without discarding successful list items; if every detail fails, the page load fails instead of returning an empty page."
         }
       ]
     },
@@ -459,16 +459,16 @@
         { "name": "URLSessionFactory.swift", "icon": "network.badge.shield.half.filled" },
         { "name": "EnvironmentConfiguration.swift", "icon": "gearshape.fill" }
       ],
-      "implementationDetails": "SSLPinningDelegate validates server trust and compares the leaf certificate public-key SHA-256 hash with configured hashes. URLSessionFactory installs the delegate only when pinning is enabled and at least one hash exists. Development disables pinning; staging and production values are templates until replaced with real service configuration.",
+      "implementationDetails": "SSLPinningDelegate evaluates server trust for the API host and accepts it when the SHA-256 of a certificate's SubjectPublicKeyInfo in the chain, the value the openssl command in Production.xcconfig computes, matches a configured sha256/ pin. URLSessionFactory installs the delegate whenever pinning is enabled; missing or malformed pins reject API connections instead of silently disabling pinning. Development disables pinning; staging and production values are templates until replaced with real service configuration.",
       "codeExample": {
         "language": "swift",
-        "code": "if configuration.sslPinningEnabled, !configuration.sslPublicKeyHashes.isEmpty {\n    let delegate = SSLPinningDelegate(publicKeyHashes: configuration.sslPublicKeyHashes,\n                                      isEnabled: true)\n    return URLSession(configuration: sessionConfig,\n                      delegate: delegate,\n                      delegateQueue: nil)\n}"
+        "code": "guard configuration.sslPinningEnabled else {\n    return URLSession(configuration: sessionConfiguration)\n}\nlet delegate = SSLPinningDelegate(publicKeyHashes: configuration.sslPublicKeyHashes,\n                                  pinnedHosts: Set([configuration.baseURL.host()].compactMap(\\.self)))\nreturn URLSession(configuration: sessionConfiguration, delegate: delegate, delegateQueue: nil)"
       },
       "bestPractices": [
         {
           "id": "config-consistency",
           "title": "Configuration consistency",
-          "description": "Debug builds assert when pinning is enabled without any configured hashes."
+          "description": "Debug builds assert, and a fault is logged, when pinning is enabled without valid sha256/ pins; connections then fail closed."
         },
         {
           "id": "template-boundary",

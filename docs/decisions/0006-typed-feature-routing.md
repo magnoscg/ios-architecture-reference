@@ -51,6 +51,10 @@ This choice is partially reversible at medium cost because route types are persi
 
 The decision succeeds while routes are compiler-checked, Views do not construct cross-screen graphs, deep-link/restoration tests pass, and feature Router behavior remains unit-testable with mocks.
 
+## Amendment — 2026-11-03
+
+The open multiwindow consequence is resolved. Each window owns one `AppRouterImpl` through its `AppRootView`, and the `AppRouter` protocol given to features only offers `push`, `pop`, and `popToRoot`. A valid deep link replaces the stack instead of pushing on top, and a link received before restoration is held and applied right after it, so cold-launch ordering no longer depends on which SwiftUI callback runs first. Unit tests cover these orderings; UI tests for several windows are still missing.
+
 ---
 
 **Document Metadata**
@@ -59,6 +63,7 @@ The decision succeeds while routes are compiler-checked, Views do not construct 
 | --- | --- |
 | Author / Owner | magnoscg / OgamLabs |
 | Created / Verified | 2026-08-04 |
+| Amended | 2026-11-03 |
 | Status | Accepted |
 | Review Schedule | On route schema or scene ownership changes |
 | Labels | `adr`, `navigation`, `router`, `swiftui` |

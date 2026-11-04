@@ -2,9 +2,31 @@
 
 All notable changes to this project are documented here. The repository uses semantic version tags without a `v` prefix.
 
-## Unreleased
+## [2.1.0] - 2026-11-04
 
-No unreleased changes.
+### Changed
+
+- Re-imported the reference app from source commit `c046aee55f3fd25ff8508014660a06fe44b0fb41`, then applied the networking changes from `51c05fe810f8d842d25e93701c456501bdac4066`; see [Source provenance](docs/SOURCE-PROVENANCE.md).
+- Moved Repository protocols to `Domain/<Concept>/Repositories`; `Data` now holds only their implementations.
+- Moved `APIError` → `DomainError` mapping to `Data/Common`. Repositories wrap their work in `DomainError.catching`, which keeps cancellation as `CancellationError`, and Use Cases no longer map errors.
+- Organized `Domain` and `Data` by concept: the Pokémon list and detail screens share `Domain/Pokemon` and `Data/Pokemon`, and the list model is now `PokemonSummaryModel`.
+- Gave each window its own `AppRouterImpl` and `AppNavigationCoordinator` through a new `AppRootView`. The `AppRouter` protocol now offers only `push`, `pop`, and `popToRoot`.
+- Made deep links replace the stack, and held a link received before restoration until the saved path is restored. A failed encoding no longer overwrites the saved path.
+- Made the bundled JSON Data Source do no I/O in its initializer and decode in a `@concurrent` function; a missing or invalid file is now an error instead of an empty catalogue.
+- Updated the catalogue entries, READMEs, architecture, structure, and limitation documents, and amended ADR-0004, ADR-0005, and ADR-0006 to match.
+
+### Fixed
+
+- `APIClientImpl` turns `URLError.cancelled` into `CancellationError` only when the task was cancelled, so a rejected pinning challenge stays a network error, and the retry backoff rethrows its `CancellationError`.
+- `RetryInterceptor` checks cancellation before retrying and only resends idempotent methods or requests with a non-empty `Idempotency-Key`.
+- The Pokémon list fails when every detail request fails instead of showing an empty page.
+- SSL pinning compares the SHA-256 of the certificate's SubjectPublicKeyInfo, the value the `openssl` command in `Production.xcconfig` computes; it used to hash the raw key, so a correct pin never matched. Any certificate in the chain can match, only the API host is pinned, and missing or malformed pins reject API connections.
+- `APIClientImpl` invalidates only a `URLSession` it created.
+- `RetryInterceptor` no longer retries errors that describe the device state, honors `Retry-After` up to `maxDelay`, and stops once `RetryPolicy.maxElapsedTime` is spent. The session waits for connectivity and no longer blocks Low Data Mode.
+
+### Added
+
+- Tests for the retry interceptor, Data-side error mapping, `ErrorDecorator` mapping, the detail repository, the list Use Case, and deep-link launch ordering, session ownership, SSL pinning and `URLSessionFactory`: 253 Swift Testing cases across 33 suites.
 
 ## [2.0.1] - 2026-10-31
 
@@ -57,6 +79,7 @@ No unreleased changes.
 - Fifteen Swift Testing checks across domain, mapping, networking, and UI state.
 - Bilingual recruiter narrative, architecture decision records, security documentation, and first-party OgamLabs presentation assets.
 
+[2.1.0]: https://github.com/magnoscg/ios-architecture-reference/releases/tag/2.1.0
 [2.0.1]: https://github.com/magnoscg/ios-architecture-reference/releases/tag/2.0.1
 [2.0.0]: https://github.com/magnoscg/ios-architecture-reference/releases/tag/2.0.0
 [1.0.0]: https://github.com/magnoscg/ios-architecture-reference/tree/1.0.0
@@ -68,6 +91,6 @@ No unreleased changes.
 | Field | Value |
 | --- | --- |
 | Author / Owner | magnoscg / OgamLabs |
-| Last Updated / Verified | 2026-10-31 |
+| Last Updated / Verified | 2026-11-04 |
 | Review Schedule | Every release |
 | Labels | `changelog`, `release`, `semver` |

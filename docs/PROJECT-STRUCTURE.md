@@ -4,9 +4,9 @@
 
 ## Organization model
 
-The repository contains one iOS application target organized through logical source folders. At the top level, `App`, `Core`, `Domain`, `Data`, and `Features` express layers. Within `Domain`, `Data`, and `Features`, folders are divided by feature.
+The repository contains one iOS application target organized through logical source folders. At the top level, `App`, `Core`, `Domain`, `Data`, and `Features` express layers. Within `Domain` and `Data`, folders are divided by domain concept, so `Domain/Pokemon` serves both the Pokémon list and detail screens. Within `Features`, folders are divided by screen.
 
-This makes the structure **layered globally and feature-oriented locally**. Presentation is the most vertically grouped area: each feature keeps its UI, ViewModel, presentation mappers, navigation, and composition factory together. It is not a set of independent feature modules.
+This makes the structure **layered globally, organized by concept in Domain and Data, and by screen in Features**. Presentation is the most vertically grouped area: each feature keeps its UI, ViewModel, presentation mappers, navigation, and composition factory together. It is not a set of independent feature modules.
 
 See [ADR-0004](decisions/0004-single-app-target-logical-boundaries.md) for why the reference keeps one application target.
 
@@ -24,7 +24,9 @@ ios-architecture-reference/
 │   ├── Info.plist
 │   ├── PrivacyInfo.xcprivacy
 │   ├── App/
-│   │   ├── Application/SplashScreen/
+│   │   ├── Application/
+│   │   │   ├── AppRootView.swift
+│   │   │   └── SplashScreen/
 │   │   ├── Config/
 │   │   │   └── Xcconfig/
 │   │   └── Navigation/
@@ -38,14 +40,13 @@ ios-architecture-reference/
 │   ├── Domain/
 │   │   ├── Architecture/
 │   │   ├── ArchitectureDetail/
-│   │   ├── PokemonList/
-│   │   ├── PokemonDetail/
+│   │   ├── Pokemon/
 │   │   └── Common/
 │   ├── Data/
 │   │   ├── Architecture/
 │   │   ├── ArchitectureDetail/
-│   │   ├── PokemonList/
-│   │   └── PokemonDetail/
+│   │   ├── Pokemon/
+│   │   └── Common/
 │   ├── Features/
 │   │   ├── Architecture/
 │   │   ├── ArchitectureDetail/
@@ -78,15 +79,15 @@ The tree intentionally does not show an `ArquitecturaUITests/` directory: the Xc
 
 | Zone | Responsibility | Examples |
 | --- | --- | --- |
-| `App` | Startup, shared configuration, navigation root and app-lifetime wiring | `AppDependencies`, `RootNavigationView` |
+| `App` | Startup, shared configuration, per-window navigation root and app-lifetime wiring | `AppDependencies`, `AppRootView`, `RootNavigationView` |
 | `Core` | Cross-feature UI primitives, design tokens, networking and security helpers | `APIClientImpl`, `AppColors` |
-| `Domain` | Feature models and Use Case contracts/implementations | `PokemonListUseCaseImpl` |
-| `Data` | Repository contracts/implementations, DTOs, mappers and Data Sources | `PokemonListRepositoryImpl` |
+| `Domain` | Concept models, Use Case contracts/implementations, Repository contracts and `DomainError` | `PokemonListUseCaseImpl`, `PokemonListRepository` |
+| `Data` | Repository implementations, DTOs, mappers, Data Sources and `APIError` → `DomainError` translation | `PokemonListRepositoryImpl`, `DomainError+Mapping` |
 | `Features` | SwiftUI screens, screen state, ViewModels, decorators, routers and factories | `PokemonListFactory` |
 | `Resources` | First-party asset catalog, local catalogue detail data and localizations | `architecture_details.json` |
 | `ArquitecturaTests` | Swift Testing suites and protocol-based test doubles | `MockPokemonListUseCase` |
 
-The folder placement records the current implementation. It should not be read as a claim that Repository protocols belong in `Data` in strict Clean Architecture; that deviation is tracked in [Known limitations](KNOWN-LIMITATIONS.md).
+Repository protocols live in `Domain` and only their implementations live in `Data`, so Domain never references Data or networking types. The layers are still folders in one target, so that direction is enforced by review rather than by the compiler; see [Known limitations](KNOWN-LIMITATIONS.md).
 
 ## Inside a feature
 
@@ -111,14 +112,15 @@ Features/<Feature>/
 
 Not every feature needs every file. For example, the Pokémon detail flow has no destinations of its own, while the list owns list/detail route cases and a resolver. Avoid empty layers created only for visual symmetry.
 
-The matching data and domain areas are:
+Domain and Data are organized by concept, which can serve several screens:
 
 ```text
-Domain/<Feature>/
+Domain/<Concept>/
 ├── Models/
+├── Repositories/
 └── UseCases/
 
-Data/<Feature>/
+Data/<Concept>/
 ├── DataSources/
 ├── DTO/
 ├── Mappers/
@@ -135,14 +137,16 @@ Data/<Feature>/
 | Domain-to-UI decorator mapping | `Features/<Feature>/Presentation/Mappers/` |
 | Feature route or Router protocol | `Features/<Feature>/Navigation/` |
 | Screen object-graph construction | `Features/<Feature>/DI/<Feature>Factory.swift` |
-| Domain model | `Domain/<Feature>/Models/` |
-| Use Case protocol and implementation | `Domain/<Feature>/UseCases/` |
-| Repository protocol and implementation | `Data/<Feature>/Repositories/` under the current convention |
-| Remote or bundled Data Source | `Data/<Feature>/DataSources/` |
-| Transport DTO or DTO-to-domain mapper | `Data/<Feature>/DTO/` or `Data/<Feature>/Mappers/` |
+| Domain model | `Domain/<Concept>/Models/` |
+| Use Case protocol and implementation | `Domain/<Concept>/UseCases/` |
+| Repository protocol | `Domain/<Concept>/Repositories/` |
+| Repository implementation | `Data/<Concept>/Repositories/` |
+| Remote or bundled Data Source | `Data/<Concept>/DataSources/` |
+| Transport DTO or DTO-to-domain mapper | `Data/<Concept>/DTO/` or `Data/<Concept>/Mappers/` |
+| Shared domain error or its Data-side mapping | `Domain/Common/` or `Data/Common/` |
 | Cross-feature HTTP capability | `Core/Networking/` |
 | App-lifetime dependency | `App/Config/AppDependencies.swift` and the relevant feature factory |
-| Root-level route coordination | `App/Navigation/` |
+| Root-level route coordination or deep links | `App/Navigation/` |
 | Test double | `ArquitecturaTests/Mocks/` |
 | Focused test | Mirror the production layer under `ArquitecturaTests/` |
 
@@ -192,8 +196,8 @@ The test plan executes only `ArquitecturaTests`. Adding genuine UI coverage requ
 | --- | --- |
 | Author / Owner | magnoscg / OgamLabs |
 | Created | 2026-08-04 |
-| Last Updated | 2026-08-04 |
-| Last Verified | 2026-08-04 |
+| Last Updated | 2026-11-03 |
+| Last Verified | 2026-11-03 |
 | Status | Verified for the v2 source snapshot |
 | Review Schedule | On structural change and quarterly |
 | Labels | `ios`, `swift`, `project-structure`, `xcode` |

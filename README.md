@@ -8,7 +8,7 @@
 [![Swift 6](https://img.shields.io/badge/Swift-6.0-F05138?style=flat-square&logo=swift&logoColor=white)](Arquitectura.xcodeproj/project.pbxproj)
 [![iOS 18+](https://img.shields.io/badge/iOS-18%2B-000000?style=flat-square&logo=apple&logoColor=white)](Arquitectura.xcodeproj/project.pbxproj)
 [![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-0A84FF?style=flat-square&logo=swift&logoColor=white)](Arquitectura/Features)
-[![Swift Testing](https://img.shields.io/badge/Swift_Testing-194_tests-34C759?style=flat-square)](ArquitecturaTests)
+[![Swift Testing](https://img.shields.io/badge/Swift_Testing-253_tests-34C759?style=flat-square)](ArquitecturaTests)
 [![CI](https://img.shields.io/github/actions/workflow/status/magnoscg/ios-architecture-reference/ci.yml?branch=main&style=flat-square&label=CI&logo=githubactions&logoColor=white)](https://github.com/magnoscg/ios-architecture-reference/actions/workflows/ci.yml)
 [![Dependencies](https://img.shields.io/badge/dependencies-0-34C759?style=flat-square)](Arquitectura.xcodeproj/project.pbxproj)
 [![License: MIT](https://img.shields.io/badge/license-MIT-0066CC?style=flat-square)](LICENSE.md)
@@ -25,14 +25,14 @@
 
 **🧱 Layered, feature-first**
 
-`Domain`, `Data` and `Features` are split per feature, and mappers guard every boundary: DTO → model → UI decorator.
+`Domain` and `Data` are split by domain concept, `Features` by screen, and mappers guard every boundary: DTO → model → UI decorator.
 
 </td>
 <td width="33%" valign="top">
 
 **🧭 Typed navigation**
 
-Each feature owns a `Codable` route enum. One `NavigationPath` drives the app, with deep links and state restoration.
+Each feature owns a `Codable` route enum. One `NavigationPath` per window drives navigation, with deep links and state restoration.
 
 </td>
 <td width="33%" valign="top">
@@ -53,9 +53,9 @@ Swift 6 language mode, `@MainActor` ViewModels, task groups, `async let`, and ca
 </td>
 <td width="33%" valign="top">
 
-**🧪 194 tests**
+**🧪 253 tests**
 
-27 Swift Testing suites mirror the source tree: mappers, repositories, use cases, ViewModels and navigation.
+33 Swift Testing suites mirror the source tree: mappers, repositories, use cases, ViewModels and navigation.
 
 </td>
 <td width="33%" valign="top">
@@ -102,7 +102,7 @@ flowchart TB
         APIClient["APIClient · URLSession"] ~~~ DesignSystem["Design system"]
     end
     PRESENTATION -- "use case protocol" --> DOMAIN
-    DOMAIN -- "repository protocol" --> DATA
+    DOMAIN -- "repository protocol, implemented by Data" --> DATA
     DATA -- "typed endpoint" --> CORE
 
     classDef presentation fill:#0066CC,stroke:#004C99,color:#FFFFFF
@@ -121,13 +121,13 @@ flowchart TB
 
 | Layer | Responsibility | Example |
 | --- | --- | --- |
-| **App** | Startup, composition root, navigation stack and deep links | [`ArquitecturaApp`](Arquitectura/ArquitecturaApp.swift) |
+| **App** | Startup, composition root, per-window navigation and deep links | [`ArquitecturaApp`](Arquitectura/ArquitecturaApp.swift) |
 | **Features** | SwiftUI views, state enums, ViewModels, UI mappers, routers and factories | [`PokemonListViewModel`](Arquitectura/Features/PokemonList/Presentation/ViewModels/PokemonListViewModel.swift) |
-| **Domain** | Business models and use cases | [`PokemonListUseCaseImpl`](Arquitectura/Domain/PokemonList/UseCases/PokemonListUseCaseImpl.swift) |
-| **Data** | Repositories, data sources, DTOs and DTO mappers | [`PokemonListRepositoryImpl`](Arquitectura/Data/PokemonList/Repositories/PokemonListRepositoryImpl.swift) |
+| **Domain** | Business models, use cases and repository protocols, organised by domain concept | [`PokemonListUseCaseImpl`](Arquitectura/Domain/Pokemon/UseCases/PokemonListUseCaseImpl.swift) |
+| **Data** | Repository implementations, data sources, DTOs, DTO mappers and error mapping | [`PokemonListRepositoryImpl`](Arquitectura/Data/Pokemon/Repositories/PokemonListRepositoryImpl.swift) |
 | **Core** | Networking, security helpers, design system and shared components | [`APIClientImpl`](Arquitectura/Core/Networking/APIClientImpl.swift) |
 
-Data is translated at every boundary (`DTO → model` in Data, `model → decorator` in Presentation) and errors travel the same way: `APIError → DomainError → ErrorDecorator`. Raw server payloads never reach the UI.
+Data is translated at every boundary (`DTO → model` in Data, `model → decorator` in Presentation) and errors travel the same way: `APIError → DomainError → ErrorDecorator`. Repositories translate errors with `DomainError.catching`, so Domain never sees a networking type and raw server payloads never reach the UI.
 
 ## 🔄 Life of a request
 
@@ -153,18 +153,18 @@ sequenceDiagram
         Repo->>DS: fetchPokemonDetail(id:)
     end
     alt success
-        Repo-->>UC: [PokemonListModel]
+        Repo-->>UC: [PokemonSummaryModel]
         UC-->>VM: PokemonListResult
         VM->>VM: state = .loaded(decorators)
     else failure
-        Repo-->>UC: throws APIError
+        Repo-->>UC: throws DomainError (mapped from APIError)
         UC-->>VM: throws DomainError
         VM->>VM: state = .error(ErrorDecorator)
     end
     VM-->>View: Observation re-renders
 ```
 
-Details are fetched in parallel with a task group. A single failed detail is logged and skipped so it cannot break the page, while cancellation always propagates.
+Details are fetched in parallel with a task group. A single failed detail is logged and skipped so it cannot break the page; if every detail fails, the page fails instead of showing an empty list. Cancellation always propagates.
 
 ## 🧩 Inside a feature
 
@@ -184,8 +184,8 @@ Features/PokemonList/
     ├── PokemonListState.swift             idle · loading · loaded · error
     ├── PokemonListDecorator.swift
     └── Components/
-Domain/PokemonList/                        Models/ · UseCases/
-Data/PokemonList/                          Repositories/ · DataSources/ · DTO/ · Mappers/
+Domain/Pokemon/                            Models/ · Repositories/ · UseCases/
+Data/Pokemon/                              Repositories/ · DataSources/ · DTO/ · Mappers/
 ```
 
 Each screen renders one explicit state, so impossible combinations cannot be expressed:
@@ -199,18 +199,18 @@ enum PokemonListState: Equatable {
 }
 ```
 
-**Dependency injection is manual and hierarchical.** The app root creates long-lived services once; each screen's factory assembles its own graph through constructor injection. No container, no service locator, no singletons.
+**Dependency injection is manual and hierarchical.** The app root creates long-lived services once, each window owns its own router and navigation coordinator, and each screen's factory assembles its own graph through constructor injection. No container, no service locator, no singletons.
 
 ```mermaid
 flowchart TB
     subgraph APP["App lifetime"]
         direction LR
         Root["ArquitecturaApp"] --> Deps["AppDependencies<br/>APIClient"]
-        Root --> AppRouter["AppRouterImpl<br/>NavigationPath"]
     end
-    subgraph SCENE["Scene lifetime"]
+    subgraph SCENE["Window lifetime"]
         direction LR
-        Nav["RootNavigationView"] --> Resolvers["Feature route resolvers"]
+        Window["AppRootView"] --> AppRouter["AppRouterImpl<br/>NavigationPath"]
+        Window --> Nav["RootNavigationView"] --> Resolvers["Feature route resolvers"]
     end
     subgraph SCREEN["Screen lifetime"]
         direction LR
@@ -223,7 +223,7 @@ flowchart TB
     classDef neutral fill:#FAF9F6,stroke:#6E6E73,color:#050505
     class Root primary
     class Deps,AppRouter,Factory secondary
-    class Nav,Resolvers,VM,UC,Repo,DS neutral
+    class Window,Nav,Resolvers,VM,UC,Repo,DS neutral
     style APP fill:#0066CC14,stroke:#0066CC,stroke-width:2px
     style SCENE fill:#6E6E7314,stroke:#6E6E73,stroke-width:2px
     style SCREEN fill:#005EB814,stroke:#005EB8,stroke-width:2px
@@ -276,7 +276,7 @@ protocol PokemonListRouter: Sendable {
 }
 ```
 
-A single `NavigationStack` owns the path, and every feature plugs in its destinations with a resolver modifier:
+Each window has one `NavigationStack` that owns its path, and every feature plugs in its destinations with a resolver modifier:
 
 ```swift
 NavigationStack(path: $appRouter.path) {
@@ -284,18 +284,19 @@ NavigationStack(path: $appRouter.path) {
         .withArchitectureRoutes(appRouter: appRouter)
         .withPokemonListRoutes(appRouter: appRouter, dependencies: dependencies)
 }
-.onOpenURL { url in
-    coordinator.handleDeepLink(url)
+.task(id: "restore") {
+    coordinator.restoreNavigationState(from: navigationData)
 }
 ```
 
-Because routes are `Codable`, the path is saved with `@SceneStorage` (debounced) and restored on relaunch, and `arquitectura://` deep links map straight onto typed routes.
+Because routes are `Codable`, the path is saved with `@SceneStorage` (debounced) and restored on relaunch, and `arquitectura://` deep links map straight onto typed routes. A deep link replaces the stack, and the URL that launches the app is held until the saved path has been restored, so it always wins.
 
 ## ⚡ Concurrency and errors
 
 - **Swift 6 language mode** with `MainActor` as the default isolation; contracts that cross task boundaries are `Sendable`.
 - **Structured concurrency**: the list fetches details in parallel with `withThrowingTaskGroup`, and the detail screen loads data and species together with `async let`.
-- **Cancellation is a real code path**: use cases and repositories rethrow `CancellationError`, and ViewModels restore their previous state instead of getting stuck on a spinner.
+- **Cancellation is a real code path**: the API client, the retry interceptor and repositories rethrow `CancellationError`, and ViewModels restore their previous state instead of getting stuck on a spinner.
+- **Safe retries**: transient failures are retried with backoff only for idempotent methods or requests that carry an `Idempotency-Key`.
 - **Resilient pagination**: infinite scroll keeps loaded content on screen and shows a retryable banner when the next page fails.
 
 <details>
@@ -337,7 +338,7 @@ func loadPokemon() async {
 
 ## 🧪 Testing
 
-**194 tests in 27 suites**, written with Swift Testing and organised like the app itself (`App`, `Core`, `Domain`, `Data`, `Features`). Every collaborator sits behind a protocol, so each layer is tested in isolation with lightweight mocks:
+**253 tests in 33 suites**, written with Swift Testing and organised like the app itself (`App`, `Core`, `Domain`, `Data`, `Features`). Every collaborator sits behind a protocol, so each layer is tested in isolation with lightweight mocks:
 
 ```swift
 @Test("loadPokemon restores previous state on CancellationError")
@@ -352,7 +353,7 @@ func loadPokemonRestoresPreviousStateOnCancellation() async {
 }
 ```
 
-The suites cover endpoints and interceptors, DTO and decorator mappers, repositories and data sources, use-case pagination, sorting, error mapping and cancellation, ViewModel state transitions, router delegation, and navigation encoding, restoration and deep-link parsing.
+The suites cover endpoints and interceptors (including retry idempotency), DTO and decorator mappers, repositories and data sources (including the `DomainError` mapping), use-case pagination, sorting and cancellation, ViewModel state transitions, router delegation, and navigation encoding, restoration, deep-link parsing and launch ordering.
 
 [GitHub Actions](https://github.com/magnoscg/ios-architecture-reference/actions/workflows/ci.yml) runs on pushes and pull requests: content validation → SwiftFormat and strict SwiftLint → build → tests → a clean-diff check.
 
@@ -364,7 +365,7 @@ Architecture is a set of trade-offs, so the important ones are written down:
 | --- | --- | --- |
 | **One app target with logical layers** · [ADR-0004](docs/decisions/0004-single-app-target-logical-boundaries.md) | Easy to open, build and navigate; modules come when build times or team ownership justify them | Layer rules are enforced by convention, review and tests rather than by the compiler |
 | **Hand-written, hierarchical composition roots** · [ADR-0005](docs/decisions/0005-hierarchical-composition-roots.md) | Explicit lifetimes and compiler-checked object graphs, with no DI framework | A few more lines per feature |
-| **Typed feature routes behind one app router** · [ADR-0006](docs/decisions/0006-typed-feature-routing.md) | ViewModels stay testable and unaware of SwiftUI navigation; `Codable` routes enable restoration and deep links | A shared `NavigationPath` needs a migration plan if stored routes change |
+| **Typed feature routes behind a per-window app router** · [ADR-0006](docs/decisions/0006-typed-feature-routing.md) | ViewModels stay testable and unaware of SwiftUI navigation; `Codable` routes enable restoration and deep links | A stored `NavigationPath` needs a migration plan if routes change |
 | **`@MainActor @Observable` ViewModels with explicit state enums** | Predictable UI state with no Combine, and transitions that are easy to test | Work stays on the main actor unless it is explicitly moved off it |
 
 Every known shortcut, including where this deliberately stops short of strict Clean Architecture, is listed in [Known limitations](docs/KNOWN-LIMITATIONS.md).
@@ -437,8 +438,9 @@ docs/                          architecture decisions and guides
 | **January 2026** | Work starts in my private architecture workspace: conventions, documentation and this reference app |
 | **March 2026** | The app becomes the example project of [AnvilCLI](https://github.com/magnoscg/anvil), my Go CLI that scaffolds iOS projects with this architecture |
 | **August 2026** | Published here as a clean public snapshot, release `2.0.0` |
+| **November 2026** | Domain and Data organized by concept, per-window navigation and hardened networking, release `2.1.0` |
 
-The private history was not carried over, which is why every commit in this repository is dated August 2026. [Source provenance](docs/SOURCE-PROVENANCE.md) records the exact snapshot it came from.
+The private history was not carried over, which is why this repository starts in August 2026. [Source provenance](docs/SOURCE-PROVENANCE.md) records the exact snapshot it came from.
 
 ## 👋 About me
 

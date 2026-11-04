@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import Arquitectura
 
@@ -16,44 +17,28 @@ struct ArchitectureDetailJSONDataSourceTests {
         sut = ArchitectureDetailJSONDataSourceImpl()
     }
 
-    // MARK: - Cache Tests
-
-    @Test("Cached data returns same result on multiple calls")
-    func loadFeatureDetailsReturnsSameResultOnMultipleCalls() throws {
-        // Given: Two consecutive calls
-        let firstResult = try sut.loadFeatureDetails()
-        let secondResult = try sut.loadFeatureDetails()
-
-        // Then: Both return the same data without re-reading disk
-        #expect(firstResult.count == secondResult.count)
-        #expect(firstResult.map(\.id) == secondResult.map(\.id))
-    }
+    // MARK: - Bundled File Tests
 
     @Test("loadFeatureDetail returns correct item by ID")
-    func loadFeatureDetailReturnsCorrectItem() throws {
-        // Given: All features loaded
-        let allFeatures = try sut.loadFeatureDetails()
-        guard let firstFeature = allFeatures.first else {
-            Issue.record("No features loaded from JSON")
-            return
-        }
+    func loadFeatureDetailReturnsCorrectItem() async throws {
+        let allFeatures = try await sut.loadFeatureDetails()
+        let firstFeature = try #require(allFeatures.first)
 
-        // When: Loading by specific ID
-        let result = try sut.loadFeatureDetail(id: firstFeature.id)
+        let result = try await sut.loadFeatureDetail(id: firstFeature.id)
 
-        // Then: Returns the matching feature
         #expect(result?.id == firstFeature.id)
     }
 
     @Test("loadFeatureDetail returns nil for unknown ID")
-    func loadFeatureDetailReturnsNilForUnknownId() throws {
-        let result = try sut.loadFeatureDetail(id: "nonexistent-feature-id")
+    func loadFeatureDetailReturnsNilForUnknownId() async throws {
+        let result = try await sut.loadFeatureDetail(id: "nonexistent-feature-id")
+
         #expect(result == nil)
     }
 
-    @Test("Cached features match the factual architecture catalog")
-    func cachedFeaturesAreNotEmpty() throws {
-        let features = try sut.loadFeatureDetails()
+    @Test("Bundled features match the factual architecture catalog")
+    func bundledFeaturesMatchCatalog() async throws {
+        let features = try await sut.loadFeatureDetails()
         let ids = Set(features.map(\.id))
         let catalogIds = Set(ArchitectureStaticDataSourceImpl().getFeatures().map(\.id))
         let allFeaturesAreImplemented = features.allSatisfy(\.isImplemented)
@@ -72,5 +57,29 @@ struct ArchitectureDetailJSONDataSourceTests {
         #expect(allFeaturesAreImplemented)
         #expect(!hasLegacyFileName)
         #expect(!hasLegacyCodeExample)
+    }
+
+    // MARK: - Failure Tests
+
+    @Test("Missing file throws fileNotFound instead of returning an empty list")
+    func missingFileThrowsFileNotFound() async {
+        let dataSource = ArchitectureDetailJSONDataSourceImpl(fileURL: nil)
+
+        await #expect(throws: DataSourceError.self) {
+            try await dataSource.loadFeatureDetails()
+        }
+    }
+
+    @Test("Invalid JSON throws a DecodingError instead of returning an empty list")
+    func invalidJSONThrowsDecodingError() async throws {
+        let fileURL = FileManager.default.temporaryDirectory
+            .appending(path: "invalid-architecture-details-\(UUID().uuidString).json")
+        try Data("not valid json".utf8).write(to: fileURL)
+        defer { try? FileManager.default.removeItem(at: fileURL) }
+        let dataSource = ArchitectureDetailJSONDataSourceImpl(fileURL: fileURL)
+
+        await #expect(throws: DecodingError.self) {
+            try await dataSource.loadFeatureDetail(id: "any")
+        }
     }
 }

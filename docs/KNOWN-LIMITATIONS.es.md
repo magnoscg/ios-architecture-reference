@@ -18,21 +18,13 @@ Todo el código de producción se compila en `Arquitectura`. `App`, `Core`, `Dom
 
 **Pregunta posterior:** modularizar únicamente cuando los límites de build, reutilización o equipos justifiquen el coste. Consulta [ADR-0004](decisions/0004-single-app-target-logical-boundaries.md).
 
-### Los contratos Repository viven en Data
+### El tipo de error de presentación vive en Core
 
-Los casos de uso de Domain dependen de protocolos Repository declarados físicamente en `Data/<Feature>/Repositories`.
+Los protocolos Repository viven en Domain y la transformación transporte → dominio ocurre en Data ([`DomainError+Mapping.swift`](../Arquitectura/Data/Common/DomainError+Mapping.swift)), así que Domain ya no conoce `APIError`. Sin embargo, `ErrorDecorator` está bajo Core aunque representa estado de presentación para el usuario, porque lo comparten todas las features.
 
-**Consecuencia:** el árbol no representa la ubicación por inversión de dependencias que se espera de Clean Architecture estricta.
+**Consecuencia:** Core contiene una responsabilidad de presentación.
 
-**Pregunta posterior:** mover los contratos a Domain y dejar en Data solo las implementaciones si el equipo elige esa propiedad estricta.
-
-### El mapeo de errores cruza hacia fuera
-
-`DomainError+Mapping.swift` conoce el `APIError` de networking en Core. `ErrorDecorator` está bajo Core aunque representa estado de presentación para el usuario.
-
-**Consecuencia:** Domain no es independiente del transporte y Core contiene una responsabilidad de presentación.
-
-**Pregunta posterior:** transformar transporte → dominio en el límite Data y mover la decoración UI a Features o una zona específica de presentación.
+**Pregunta posterior:** mover la decoración UI de errores a una zona específica de presentación si Core llega a extraerse a su propio módulo.
 
 ## Limitaciones de composición y navegación
 
@@ -44,13 +36,13 @@ Los casos de uso de Domain dependen de protocolos Repository declarados físicam
 
 **Pregunta posterior:** elevar esa intención a un contrato de ruta/coordinación de app si la propiedad independiente de features pasa a ser relevante.
 
-### Un router de app con multiwindow habilitado
+### La navegación multiventana y de arranque en frío solo tiene tests unitarios
 
-`ArquitecturaApp` posee un `AppRouterImpl`, mientras Info.plist permite múltiples escenas. `RootNavigationView` crea un coordinador de escena y persiste el path con `@SceneStorage`.
+El `AppRootView` de cada ventana posee su `AppRouterImpl` y su `AppNavigationCoordinator`, y el coordinador retiene un deep link recibido antes de restaurar hasta que el path guardado se ha restaurado. Los tests unitarios del coordinador cubren esos órdenes.
 
-**Consecuencia:** la muestra no establece routers independientes para varias ventanas activas ni valida exhaustivamente el orden entre restauración en arranque frío y deep links entrantes.
+**Consecuencia:** ningún UI test ejercita varias ventanas activas ni un arranque en frío desde un deep link en un simulador.
 
-**Pregunta posterior:** hacer que la propiedad del router sea explícitamente por escena y añadir escenarios cold launch/multiwindow antes de adoptar esta forma en un producto multiwindow.
+**Pregunta posterior:** añadir esos escenarios cuando exista una suite de UI tests.
 
 ### `NavigationPath` heterogéneo
 
@@ -66,13 +58,13 @@ El target de app usa `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`. Los límites a
 
 **Consecuencia:** no se puede afirmar que Domain o Data se ejecuten siempre en background.
 
-### El JSON del bundle se decodifica síncronamente
+### El JSON del bundle se decodifica en cada petición
 
-`ArchitectureDetailJSONDataSourceImpl` lee y decodifica el catálogo durante la construcción del grafo de feature y lo conserva para esa vida de grafo.
+`ArchitectureDetailJSONDataSourceImpl` no hace I/O al crearse y decodifica el catálogo en una función `@concurrent`, fuera del main actor, cada vez que se pide un detalle. No mantiene caché.
 
-**Consecuencia:** el archivo pequeño actual es aceptable para la referencia, pero este patrón ejecutaría archivos mayores y su decoding en el contexto de aislamiento del llamador.
+**Consecuencia:** cada pantalla de detalle lee y decodifica el archivo completo. Es despreciable para 19 entradas, pero crecería con el catálogo.
 
-**Pregunta posterior:** introducir un loader async con aislamiento explícito solo si el tamaño o una medición de navegación lo justifican.
+**Pregunta posterior:** cachear los DTO decodificados en un almacén con aislamiento explícito solo si una medición demuestra que el coste importa.
 
 ### Caminos duplicados para el catálogo
 
@@ -100,7 +92,7 @@ Los xcconfig y schemes de Staging/Production son ilustrativos. Sus endpoints son
 
 El proyecto contiene un target nominal `ArquitecturaUITests`, pero no hay directorio de fuentes y el test plan compartido ejecuta solo `ArquitecturaTests`.
 
-**Consecuencia:** los 194 casos Swift Testing son evidencia unitaria/de integración, no prueba end-to-end de UI, accesibilidad o estabilidad visual.
+**Consecuencia:** los 253 casos Swift Testing son evidencia unitaria/de integración, no prueba end-to-end de UI, accesibilidad o estabilidad visual.
 
 ### Dependencia externa en runtime
 
@@ -116,14 +108,13 @@ La muestra contiene infraestructura de SSL pinning, interceptores, ayudas de Key
 
 ## Backlog de revisión estructural
 
-La tarea posterior debería evaluar, por este orden:
+El snapshot del 03-11-2026 resolvió los puntos anteriores sobre la ubicación de contratos Repository, el mapping transporte → dominio, la navegación propiedad de escena con deep links ordenados y el trabajo síncrono con JSON; consulta el [changelog](../CHANGELOG.md). La tarea posterior debería evaluar, por este orden:
 
-1. límites de actor/aislamiento y trabajo síncrono con JSON;
-2. navegación propiedad de escena, orden de deep links y compatibilidad de restauración;
-3. valores efectivos de xcconfig y el target UI Test vacío;
-4. ubicación de contratos Repository y mapping transporte → dominio;
-5. navegación entre features y fuentes duplicadas del catálogo;
-6. módulos solo si límites medibles de propiedad o build los justifican.
+1. valores efectivos de xcconfig y el target UI Test vacío;
+2. compatibilidad de restauración de rutas y cobertura UI de deep links multiventana y en arranque en frío;
+3. navegación entre features y fuentes duplicadas del catálogo;
+4. el tipo de error de presentación en Core;
+5. módulos solo si límites medibles de propiedad o build los justifican.
 
 Ningún punto autoriza por sí solo un refactor. Cada cambio debe aportar tests, impacto de migración y un ADR cuando altere un contrato arquitectónico.
 
@@ -135,8 +126,8 @@ Ningún punto autoriza por sí solo un refactor. Cada cambio debe aportar tests,
 | --- | --- |
 | Autor / Responsable | magnoscg / OgamLabs |
 | Creado | 2026-08-04 |
-| Última actualización | 2026-08-04 |
-| Última verificación | 2026-08-04 |
+| Última actualización | 2026-11-03 |
+| Última verificación | 2026-11-03 |
 | Estado | Limitaciones aceptadas para publicar v2 |
 | Revisión | Trimestral y antes de refactors estructurales |
 | Etiquetas | `ios`, `arquitectura`, `deuda-técnica`, `limitaciones` |
